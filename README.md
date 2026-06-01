@@ -114,7 +114,7 @@ No conflicts exist or are expected.
 ## Links and resources
 
 - [**GitHub Repository**](https://github.com/gallaux/super-punch-out-special-edition) — Source, patch files, and documentation
-- [**ROMhacking.net**](https://www.romhacking.net/games/3253/) — This rom hack's entry
+- [**ROMhacking.net**](https://www.romhacking.net/hacks/9705/) — This rom hack's entry
 - [**Super Punch-Out!! Disassembly**](https://github.com/Yoshifanatic1/Super-Punch-Out-Disassembly) — Full disassembly of the game; invaluable reference for this hack
 - [**2-Player Mode Discovery**](https://x.com/new_cheats_news/status/1556727895778856960) — The tweet that revealed the hidden VS mode (Aug 8, 2022)
 - [**The Cutting Room Floor**](https://tcrf.net/Super_Punch-Out!!_(SNES)) — Unused content and hidden features documentation
