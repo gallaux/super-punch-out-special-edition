@@ -97,7 +97,6 @@ Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
 - **Free space remaining:** ~1,240 bytes in the confirmed garbage zone at bank $0D (file 0x6FB0C–0x6FFE3). Bank $01 is fully consumed.
-- **IPS rule:** always a single continuous hex string, no whitespace, applied to the unmodified original ROM.
 
 ---
 
