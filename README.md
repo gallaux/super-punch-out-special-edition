@@ -30,7 +30,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ### [`spo_versus_hack.ips`](patches/spo_versus_hack.ips) — Versus Hack (base)
 
-The core hack. Adds Versus Mode to the menu and fixes the P2 control, screen labels, and Special Circuit lock. Apply to the original ROM.
+The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
 
 ### [`spo_special_edition.ips`](patches/spo_special_edition.ips) — Special Edition (recommended)
 
