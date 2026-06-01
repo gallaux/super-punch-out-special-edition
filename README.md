@@ -5,6 +5,13 @@
 **Base ROM:** Super Punch-Out!! (USA, SNES) — MD5 `97fe7d7d2a1017f8480e60a365a373f0`
 **Apply with:** Lunar IPS, flips, or any standard IPS patcher. Always patch the **original, unmodified ROM**.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_000" src="https://github.com/user-attachments/assets/f671137e-def2-47c2-846f-20748be57fa1" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/20bb0c6e-2d73-4ca2-ba18-6bb9584b7f50" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/ccadbeb0-6891-46d3-9da6-fbd5541e1196" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_003" src="https://github.com/user-attachments/assets/8bf624b7-9f18-40fa-9d36-f0ab3e8127a1" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_004" src="https://github.com/user-attachments/assets/c2388040-58ed-4175-8ff9-864da235d250" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_005" src="https://github.com/user-attachments/assets/f664f19a-4299-464d-9408-713bb404f71d" />
+
 ---
 
 ## Background
