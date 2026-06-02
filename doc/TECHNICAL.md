@@ -2,9 +2,7 @@
 
 This document covers the full reverse-engineering and implementation details behind the patches described in [README.md](../README.md). It is intended for ROM hackers, the technically curious, and anyone who wants to continue this work.
 
-The working notes, intermediate versions, and trial-and-error history live in [SPO_EXHIBITION_HACK_STATUS.txt](../SPO_EXHIBITION_HACK_STATUS.txt). This document contains only what is confirmed to work.
-
-The main patch is distributed as [`spo_versus_hack.ips`](../patches/spo_versus_hack.ips).
+The main patch is distributed as [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips).
 
 ---
 
@@ -521,7 +519,7 @@ Same content as `$0x6FAC3`. This copy is referenced by the title-screen layout s
 
 ## 6. Standalone patches — technical detail
 
-### [`spo_sandman_stats_fix.ips`](../patches/spo_sandman_stats_fix.ips)
+### [`spo_sandman_stats_fix.ips`](../patches/standalone/spo_sandman_stats_fix.ips)
 
 **What it does:** Corrects Mr. Sandman's profile screen, which shows the wrong stats (Super Macho Man's age, weight, and record) due to a copy-paste error in the original source. After patching, Sandman shows his correct values from the Japanese version: age 30, weight 270 lbs, record 28-4. Those values are also confirmed in the game's manual.
 
@@ -538,7 +536,7 @@ New: 13 10 0A 12 17 0A 12 18 F4 14   ("30", "27", "28-4" — correct JP values)
 
 ---
 
-### [`spo_jp_charset_enabled.ips`](../patches/spo_jp_charset_enabled.ips)
+### [`spo_jp_charset_enabled.ips`](../patches/standalone/spo_jp_charset_enabled.ips)
 
 **What it does:** Makes L/R cycling between three character sets (Japanese-1, Japanese-2, Western) always active in name entry, with no button combo required. The screen opens on the Western set by default, so players who don't want Japanese characters don't need to do anything differently. L and R cycle through all three sets as they do in the Japanese version.
 
@@ -554,7 +552,7 @@ Three single-byte changes at SNES `$01:DF83`/`$DF92`/`$DF95` (file `0xDF83–0xD
 
 ---
 
-### [`spo_special_title_screen.ips`](../patches/spo_special_title_screen.ips)
+### [`spo_special_title_screen.ips`](../patches/standalone/spo_special_title_screen.ips)
 
 **What it does:** Replaces the title-screen ring logo and background color palette with the Special Circuit variants. The SUPER PUNCH-OUT!! logo is unchanged; only the ring artwork and colors behind and around it are swapped. All in-game circuit screens are unaffected — only the title screen is altered.
 
@@ -569,11 +567,117 @@ Bank `$0E` header table: `+$00` = MainMenu font, `+$02` = MinorCircuit, `+$04` =
 
 ---
 
-### [`spo_disable_security_checksum.ips`](../patches/spo_disable_security_checksum.ips)
+### [`spo_disable_security_checksum.ips`](../patches/standalone/spo_disable_security_checksum.ips)
 
 The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack.
 
 IPS hex (15 bytes): `5041544348003c230002a900454f46`
+
+### [`spo_credits.ips`](../patches/standalone/spo_credits.ips)
+
+**What it does:** Adds a fourth `CREDITS` entry to the **Records View select screen** (the screen that asks which circuit's records to view) and tightens the layout so the four entries sit at rows 10/14/18/22 with the header at row 2 — matching the Championship circuit-select layout. Selecting `CREDITS` launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset; that is the original cutscene's terminal behavior, not introduced by this patch.
+
+**Final on-screen layout:**
+
+| Row | Element | Layer |
+|---|---|---|
+| 2 | RECORDS VIEW MODE | Layer 1 |
+| 6 | `<` ITEM SELECT `>` | Layer 2 |
+| 10 | BEST TIME | Layer 1 |
+| 14 | BEST SCORE | Layer 1 |
+| 18 | PERSONAL RECORDS | Layer 1 |
+| 22 | CREDITS | Layer 1 |
+
+**Records View screen architecture:**
+
+The select screen's init at `CODE_01BFA2` (file `0x0BFA2`) runs a sequence of operations that *each* hardcode WRAM addresses paired to specific tile rows. Moving any element requires updating all of its paired hardcoded references in lockstep. The five coupled positions are:
+
+| Init offset | Hardcoded value | Paired with |
+|---|---|---|
+| `0x0BFAB` (`$47`) | `$0310` | first entry row (highlight bar base) |
+| `0x0BFDB` (`CBA8` X) | `$5A14` | subheader Layer 2 row (palette-cycle range) |
+| `0x0BFE9` (`CB57` X) | `$00CE` | "RECORDS VIEW MODE" header row (palette cycle) |
+| `0x0BFF2`/`0x0BFF5` (`D70C` X/Y) | `$0210`/`$022E` | subheader row (`<`/`>` brackets) |
+| `0x0C022` (`$53` cursor anchor Y) | `$5F` | first entry row (cursor sprite scan start) |
+
+**Why the cursor anchor is the load-bearing one — the `D082` scan loop:**
+
+`CB57` (the palette-cycler called with `X=$0000, Y=$0200`) reads each tilemap entry, and for the empty-fill value `$0064` produces:
+
+- `$00EF` written to the same position
+- `$00FF` written to row+1 (shadow row)
+
+Those are exactly the two sentinel values that `CODE_01D082` (the cursor's auto-snap-to-text scan) skips. After init the cursor sprite is positioned by:
+
+1. Setting sprite Y to `$53 + 1` (`$5F + 1 = $60` = pixel row 12).
+2. Calling `CAAE`, which loops calling `D082` — converts sprite (X,Y) to tilemap offset via `Y*8 + X/4`, reads the tile, advances X by 8 px and re-tries if the tile is `$EF`/`$FF`, exits when it finds real text.
+
+If `BEST TIME` is anywhere other than row 12, the scan finds only the CB57-transformed `$EF`/`$FF` sentinels at row 12 and **loops forever** — the audio CPU keeps running (music plays) but the main CPU is stuck. The fix is to shift `$53` (file `0x0C022`) in lockstep with the first entry's row.
+
+**Patch records:**
+
+| File offset | Bytes | Effect |
+|---|---|---|
+| `0x0BFA6` | `03` | `$14=3` (4-item highlight loop, was 3) |
+| `0x0BFAB` | `90 02` | `$47=$0290` highlight bar base (row 12 → row 10) |
+| `0x0BFDB` | `94 59` | `CBA8` palette-cycle base `$5A14` → `$5994` (subhdr row 8 → 6) |
+| `0x0BFE9` | `8E` | second `CB57` X arg `$00CE` → `$008E` (cycle row 2, not row 3) |
+| `0x0BFF2` | `90 01` | arrow renderer X `$0210` → `$0190` (`<` row 8 → 6) |
+| `0x0BFF5` | `AE 01` | arrow renderer Y `$022E` → `$01AE` (`>` row 8 → 6) |
+| `0x0C022` | `4F` | cursor sprite anchor Y `$5F` → `$4F` (scan starts at row 10) |
+| `0x0C9CA` | `5C 39 FB 0D` | `JML $0D:FB39` — replaces start of `CODE_01C9CA`, bypasses original 3-way dispatch |
+| `0x6A3EC` | `0C FB` | `DA3DA[$12]` redirect to `$0D:FB0C` (replaces ptr to `$AE3F`) |
+| `0x6A47A` | `31 FB` | `DA332[$A4]` redirect to `$0D:FB31` (CREDITS tile string) |
+| `0x6AE62` | `8E` | descriptor `$14` RECORDS WRAM lo `$50CE` → `$508E` (row 3 → 2) |
+| `0x6AE66` | `9E` | descriptor `$14` VIEW WRAM lo `$50DE` → `$509E` |
+| `0x6AE6A` | `AC` | descriptor `$14` MODE WRAM lo `$50EC` → `$50AC` |
+| `0x6FB0C` | 37 B | new screen descriptor (9 records + terminator) |
+| `0x6FB31` | 8 B | "CREDITS" tile string (`07 0C 1B 0E 0D 12 1D 1C`) |
+| `0x6FB39` | 41 B | A-button dispatch stub |
+
+**New layout sub-table (`$0D:FB0C`, 37 bytes):**
+
+```
+1A 20 94 59   ITEM             Layer 2 row 6  col 10  ($5994)
+05 20 9C 59     SELECT         Layer 2 row 6  col 14  ($599C)
+1B 34 96 52   BEST             Layer 1 row 10 col 11  ($5296)
+0F 34 A0 52   TIME             Layer 1 row 10 col 16  ($52A0)
+1B 1C 96 53   BEST             Layer 1 row 14 col 11  ($5396)
+1D 1C A0 53   SCORE            Layer 1 row 14 col 16  ($53A0)
+1C 34 90 54   PERSONAL         Layer 1 row 18 col 8   ($5490)
+10 34 A2 54   RECORDS          Layer 1 row 18 col 17  ($54A2)
+A4 1C 98 55   CREDITS          Layer 1 row 22 col 12  ($5598)
+00            terminator
+```
+
+The text-index `$A4` (`DA332[$A4]`) is repurposed: in the original ROM it pointed to garbage at `$B0A7` that is never used as menu text.
+
+**A-button dispatch stub (`$0D:FB39`, 41 bytes):**
+
+The original `CODE_01C9CA` is the confirm dispatcher for state `$05=0, $07=8` on this screen. It advances `$05` by 2/4/6 based on `$07E6` (cursor index 0/1/2) to enter the score-display state for Minor/Major/World circuits. Index 3 (CREDITS) was not handled and fell through to index 2's path — which is why the title-screen exhibition hack v9–v13 work in the parent doc accidentally launched the credits when their JML target was `$00:B29C`.
+
+The stub replaces that dispatch wholesale by JMLing into bank `$0D` from the very first byte of `C9CA`, then implementing all four cases plus the original `$44 != 0` short-circuit:
+
+```asm
+A5 44              LDA $44
+D0 21              BNE +$21         ; → JML $01:C94F (the $44 ≠ 0 path)
+AD E6 07           LDA $07E6
+F0 10              BEQ +$10         ; → index 0 INC pair
+C9 01              CMP #$01
+F0 08              BEQ +$08         ; → index 1 INC pair
+C9 03              CMP #$03
+F0 10              BEQ +$10         ; → index 3 JML
+E6 05  E6 05       INC $05 ×2       ; index 2 fall-through (3 INC pairs total)
+E6 05  E6 05       INC $05 ×2       ; index 1 enters here  (2 INC pairs total)
+E6 05  E6 05       INC $05 ×2       ; index 0 enters here  (1 INC pair total)
+64 07              STZ $07
+AB                 PLB
+6B                 RTL
+5C 9C B2 00        JML $00:B29C     ; index 3: ending-cutscene credits roll
+5C 4F C9 01        JML $01:C94F     ; $44 ≠ 0 path
+```
+
+**Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes). Conflicts with `spo_sound_mode_ui_incomplete.ips`, which also uses `$0D:FB0C+` — the two patches cannot be applied together.
 
 ### [`spo_sound_mode_ui_incomplete.ips`](../patches/incomplete/spo_sound_mode_ui_incomplete.ips)
 
@@ -665,10 +769,12 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FAC3–0x6FAC9` | 7 B | "VERSUS" tile data |
 | `0x6FACA–0x6FAF8` | 49 B | 12-record VERSUS descriptor |
 | `0x6FB03–0x6FB0B` | 9 B | "PLAYER 2" tile data |
-| `0x6FB0C–0x6FB4B` | 64 B | `spo_sound_mode_ui_incomplete.ips` layout table + stub |
-| `0x6FB4C–0x6FFE3` | ~1,176 B | **Free** |
+| `0x6FB0C–0x6FB61` | 86 B | `spo_credits.ips` descriptor + tile string + dispatch stub |
+| `0x6FB62–0x6FFE3` | ~1,154 B | **Free** |
 | `0x6FFB0–0x6FFDE` | 47 B | Stale bytes from earlier iterations (harmless, unreferenced) |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
+
+> The same `$0D:FB0C–$0D:FB4B` range is also written by `spo_sound_mode_ui_incomplete.ips` (64 B for the title-screen sound-mode layout table + stub). These two patches **cannot be applied together** — they are mutually exclusive layouts of the same free space.
 
 ---
 
@@ -710,14 +816,25 @@ Each entry: `[length_byte][tile_byte × length]`. The renderer reads `data[0]` a
 | `$49` | PLAYER | original |
 | `$2D` | PLAYER 2 (8 tiles) | `0x6FB03` — **repurposed** |
 | `$37` | VERSUS (6 tiles) | `0x6FAC3` — **repurposed** |
+| `$A4` | CREDITS (7 tiles) | `0x6FB31` — **repurposed by `spo_credits.ips`** (originally pointed to garbage at `$B0A7`, never used as menu text) |
 
 **Warning:** `text_idx=$00` is the descriptor terminator sentinel. It cannot be used as a live token index — the renderer stops on it.
 
 ### Screen descriptor table (`DATA_0DA3DA`)
 
-2-byte LE bank-relative pointers, one per screen/context. Entry 0 = title screen, entry 2 = Mode Select, entry `$A4` = VERSUS opponent-select.
+2-byte LE bank-relative pointers, one per screen/context. The renderer (`CODE_01D1FC`) is called with a **byte offset** into this table — so an arg of `$0E` means "the entry at byte offset `$0E`", i.e. the 8th pointer (index 7).
 
-The renderer is called from `CODE_01D1FC` with a byte-offset argument. The call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to derive the argument from Y, where `Y=$000C` (Special Circuit complete) or `Y=$000E` (otherwise), selecting between descriptor entries 6 and 7.
+Key entries used or modified by this hack:
+
+| Byte offset | Entry index | Pointer (default) | Screen / context |
+|---|---|---|---|
+| `$00` | 0 | `$AD48` | title screen layout |
+| `$04` | 2 | `$AD6A` | Mode Select layout (redirected to `$FA86` by `spo_versus_hack.ips`) |
+| `$12` | 9 | `$AE3F` | Records View select layout (redirected to `$FB0C` by `spo_credits.ips`) |
+| `$14` | 10 | `$AE60` | "RECORDS VIEW MODE" header (modified in place by `spo_credits.ips`) |
+| `$A4` | 82 | `$AEB7` (stale) | VERSUS opponent-select layout (redirected to `$FACA` by `spo_versus_hack.ips`) |
+
+The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to derive the argument from Y, where `Y=$000C` (Special Circuit complete) or `Y=$000E` (otherwise), selecting between byte-offset entries 6 and 7.
 
 ---
 
@@ -729,8 +846,13 @@ The renderer is called from `CODE_01D1FC` with a byte-offset argument. The call 
 |---|---|---|
 | `$01:B0F0` | `0xB0F0` | Title screen entry, sets DP=`$0C00` |
 | `$01:B14D` | `0xB14D` | Menu init (state `$03=0`) |
+| `$01:BFA2` | `0xBFA2` | Records View select screen init |
+| `$01:C9CA` | `0xC9CA` | Records View select A-button confirm dispatch |
 | `$01:CA71` | `0xCA71` | Cursor highlight init |
+| `$01:CAAE` | `0xCAAE` | OAM cursor sprite positioner (calls `D082` scan loop) |
+| `$01:CB57` | `0xCB57` | Tilemap palette-cycle (transforms `$0064` → `$EF`/`$FF`) |
 | `$01:CC79` | `0xCC79` | Cursor highlight renderer (loops `$14+1` times) |
+| `$01:D082` | `0xD082` | Cursor's auto-snap-to-text scan (skips `$EF`/`$FF`) |
 | `$01:C8E9` | `0xC8E9` | Post-Start dispatcher — **do not patch** |
 | `$01:DFB4` | `0xDFB4` | Per-frame input loop (interactive menu) |
 | `$01:E0A3` | `0xE0A3` | A-button dispatch |
@@ -772,6 +894,9 @@ The renderer is called from `CODE_01D1FC` with a byte-offset argument. The call 
 | `$0D:FA69` | `0x6FA69` | Start of confirmed garbage zone (1,403 bytes free) |
 | `$0D:FA86` | `0x6FA86` | New Mode Select layout sub-table |
 | `$0D:FACA` | `0x6FACA` | 12-record VERSUS opponent-select descriptor |
+| `$0D:FB0C` | `0x6FB0C` | New Records View select-screen descriptor (`spo_credits.ips`) |
+| `$0D:FB31` | `0x6FB31` | "CREDITS" tile string |
+| `$0D:FB39` | `0x6FB39` | A-button dispatch stub for Records View select |
 | `$0D:FFE4` | `0x6FFE4` | Interrupt vectors — untouchable |
 | `$01:B132` | `0x0B132` | `$01`-indexed dispatch table |
 | `$01:B13D` | `0x0B13D` | `$03`-indexed title-screen state table |
