@@ -28,13 +28,13 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ## Patch files
 
-### [`spo_versus_hack.ips`](patches/spo_versus_hack.ips) — Versus Hack (base)
+### [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) — Versus Hack (base)
 
 The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
 
-### [`spo_special_edition.ips`](patches/spo_special_edition.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.1.ips`](patches/spo_special_edition_v1.1.ips) — Special Edition (recommended)
 
-The full experience: `spo_versus_hack.ips` stacked with the first four standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
+The full experience: `spo_versus_hack.ips` stacked with the first five standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
 
 ### Standalone patches
 
@@ -42,10 +42,11 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 
 | File | What it does |
 |---|---|
-| [`spo_sandman_stats_fix.ips`](patches/spo_sandman_stats_fix.ips) | Fixes Mr. Sandman's profile screen, which copies Super Macho Man's stats verbatim in US/EU. Restores the correct values from the Japanese version (age 30, weight 270 lbs, record 28-4). |
-| [`spo_jp_charset_enabled.ips`](patches/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. |
-| [`spo_special_title_screen.ips`](patches/spo_special_title_screen.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
-| [`spo_disable_security_checksum.ips`](patches/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. |
+| [`spo_sandman_stats_fix.ips`](patches/standalone/spo_sandman_stats_fix.ips) | Fixes Mr. Sandman's profile screen, which copies Super Macho Man's stats verbatim in US/EU. Restores the correct values from the Japanese version (age 30, weight 270 lbs, record 28-4). |
+| [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. |
+| [`spo_special_title_screen.ips`](patches/standalone/spo_special_title_screen.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
+| [`spo_disable_security_checksum.ips`](patches/standalone/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. |
+| [`spo_credits.ips`](patches/standalone/spo_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. |
 | [`spo_sound_mode_ui_incomplete.ips`](patches/incomplete/spo_sound_mode_ui_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu and shifts the full menu UI to make room for it. **Known bugs: pressing A on SOUND MODE triggers the DATA CLEAR menu instead; selecting NEW GAME or CONTINUE then moving the cursor in the name entry screen causes a CPU deadlock.** Wiring the actual Sound Library launch requires further investigation. Not included in the Special Edition and not recommended for general use. |
 
 ---
@@ -85,7 +86,7 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 ## Nice to have / todos
 
 - **"BEST TIME / YOUR BEST" table**: carries over from the Time Attack screen layout and appears during Versus opponent select. Cosmetic issue only; does not affect gameplay. It would be nice if we could hide or replace it altogether for a seamless UI.
-- **"SPECIAL EDITION" on the title screen**: adding text or a sprite underneath the main game logo, that fades in and out with the rest of the title screen. Not feasible with current tooling — the title screen is entirely baked into a proprietary compressed tileset and tilemap (no runtime text rendering). Would require either a custom recompressor for the SPO compression format, ~19 KB of free ROM space for an uncompressed tilemap, or new letter tiles in the tileset. The decompressor has been fully reverse-engineered (see status doc) if someone wants to pick this up.
+- **"SPECIAL EDITION" on the title screen**: adding text or a sprite underneath the main game logo, that fades in and out with the rest of the title screen. Not feasible with current tooling — the title screen is entirely baked into a proprietary compressed tileset and tilemap (no runtime text rendering). Would require either a custom recompressor for the SPO compression format, ~19 KB of free ROM space for an uncompressed tilemap, or new letter tiles in the tileset.
 - **"SOUND MODE" menu implementation**: adding SOUND MODE to the title-screen menu is a known-problematic approach — adding a 4th item to the title screen cursor system causes a CPU deadlock in name entry due to the highlight renderer iterating beyond the valid layout table bounds. A proof-of-concept UI patch exists (`patches/incomplete/spo_sound_mode_ui_incomplete.ips`) but it has two unresolved bugs (A-button goes to DATA CLEAR; name entry deadlocks). Note that the Mode Select screen has a fully separate cursor system that reinitializes item counts on every entry — the same interference issue would not apply there.
 
 ---
