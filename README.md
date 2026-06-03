@@ -7,7 +7,7 @@
 
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_000" src="https://github.com/user-attachments/assets/f671137e-def2-47c2-846f-20748be57fa1" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/20bb0c6e-2d73-4ca2-ba18-6bb9584b7f50" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/ccadbeb0-6891-46d3-9da6-fbd5541e1196" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/0da9ee08-61ff-4a87-954b-c2f59fa8e373" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_003" src="https://github.com/user-attachments/assets/8bf624b7-9f18-40fa-9d36-f0ab3e8127a1" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_004" src="https://github.com/user-attachments/assets/c2388040-58ed-4175-8ff9-864da235d250" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_005" src="https://github.com/user-attachments/assets/f664f19a-4299-464d-9408-713bb404f71d" />
@@ -35,7 +35,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
 
-### [`spo_special_edition_v1.1.ips`](patches/spo_special_edition_v1.1.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.2.ips`](patches/spo_special_edition_v1.2.ips) — Special Edition (recommended)
 
 The full experience: `spo_versus_hack.ips` stacked with the first five standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
 
@@ -88,7 +88,6 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 ## Nice to have / todos
 
-- **"BEST TIME / YOUR BEST" table**: carries over from the Time Attack screen layout and appears during Versus opponent select. Cosmetic issue only; does not affect gameplay. It would be nice if we could hide or replace it altogether for a seamless UI.
 - **"SPECIAL EDITION" on the title screen**: adding text or a sprite underneath the main game logo, that fades in and out with the rest of the title screen. Not feasible with current tooling — the title screen is entirely baked into a proprietary compressed tileset and tilemap (no runtime text rendering). Would require either a custom recompressor for the SPO compression format, ~19 KB of free ROM space for an uncompressed tilemap, or new letter tiles in the tileset.
 - **"SOUND MODE" menu implementation**: adding SOUND MODE to the title-screen menu is a known-problematic approach — adding a 4th item to the title screen cursor system causes a CPU deadlock in name entry due to the highlight renderer iterating beyond the valid layout table bounds. A proof-of-concept UI patch exists (`patches/incomplete/spo_sound_mode_ui_incomplete.ips`) but it has two unresolved bugs (A-button goes to DATA CLEAR; name entry deadlocks). Note that the Mode Select screen has a fully separate cursor system that reinitializes item counts on every entry — the same interference issue would not apply there.
 
@@ -100,7 +99,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining:** ~1,240 bytes in the confirmed garbage zone at bank $0D (file 0x6FB0C–0x6FFE3). Bank $01 is fully consumed.
+- **Free space remaining:** ~1,115 bytes in the confirmed garbage zone at bank $0D after the Versus hack. Bank $01 is fully consumed.
 
 ---
 

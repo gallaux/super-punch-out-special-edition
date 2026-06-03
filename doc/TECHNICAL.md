@@ -517,6 +517,98 @@ Same content as `$0x6FAC3`. This copy is referenced by the title-screen layout s
 
 ---
 
+### Versus opponent-select table-hide (records [30]-[33])
+
+The opponent-select screen normally shows a BEST TIME / YOUR BEST table populated from the Time Attack save data. On Versus that table is meaningless. The following four patch records blank that table region (a 30×7 tile rectangle, both BG layers) when entering from Versus, so the screen looks like a clean opponent picker. The blanking is gated on `$0607 == $02` so Time Attack's score table renders normally.
+
+### [30] File `0x0BE7A` — Init hook for Versus opponent-select table-hide (4 bytes)
+
+```
+Old: 22 DD F3 0E   JSL $0E:F3DD
+New: 22 62 FB 0D   JSL $0D:FB62
+```
+
+Replaces the existing `JSL $0E:F3DD` near the end of the opponent-select init (just before the final DMA upload at `$01:B3BF`). The new target is a stub at `$0D:FB62` which calls `JSL $0E:F3DD` itself (preserving exact original behavior), then conditionally blanks the BEST TIME / YOUR BEST table region when `$0607 == $02` (Versus mode). See [33].
+
+### [31] File `0x0BEC8` — Char-switch hook for Versus opponent-select table-hide (6 bytes)
+
+```
+Old: A2 0F 00 20 BC D7   LDX #$000F / JSR $D7BC
+New: 22 98 FB 0D EA EA   JSL $0D:FB98 / NOP / NOP
+```
+
+Replaces the last two instructions of `CODE_01BE9B` (the char-switch render path that runs when `$0C80 == $86`). The stub at `$0D:FB98` inlines `D7BC`'s body (an 8-byte DMA list copy from `DATA_01D7D2` to `$0387`+ — required for both modes), then conditionally blanks BG3 only when `$0607 == $02`. The two NOPs after the JSL fall harmlessly through to `CODE_01BECE`. See [34].
+
+### [32] File `0x06FB62` — Init blanking stub (54 bytes, SNES `$0D:FB62`)
+
+```asm
+22 DD F3 0E      JSL $0E:F3DD     ; original work, always
+AD 07 06         LDA $0607        ; gate
+C9 02            CMP #$02
+D0 2A            BNE skip_to_RTL  ; not Versus → exit
+08               PHP
+C2 30            REP #$30         ; 16-bit M/X/Y
+A2 82 54         LDX #$5482       ; BG1 row 18 col 1
+A9 07 00         LDA #$0007       ; row counter (7)
+48               PHA
+row_loop:
+  A0 1E 00         LDY #$001E     ; 30 cells per row
+  A9 00 00         LDA #$0000     ; empty tile
+  inner:
+    9F 00 00 7E      STA.l $7E0000,x   ; BG1
+    9F 00 08 7E      STA.l $7E0800,x   ; BG3 (BG1 + $0800)
+    E8 E8 88         INX, INX, DEY
+    D0 F3            BNE inner
+  8A 18 69 04 00 AA  TXA, CLC, ADC #$0004, TAX  ; advance to next row col 1
+  68 3A 48           PLA, DEC, PHA
+  D0 E2              BNE row_loop
+68 28            PLA, PLP
+6B               RTL
+```
+
+Blanks a 30-col × 7-row rectangle (cols 1-30, rows 18-24) on both BG1 and BG3 by writing `$0000` (tile 0, palette 0 — universally transparent). BG3 tilemap is at WRAM `$5800-$5FFF`, exactly `$0800` above BG1 at `$5000`, so a single inner loop writes both layers without extra arithmetic.
+
+### [33] File `0x06FB98` — Char-switch blanking stub (71 bytes, SNES `$0D:FB98`)
+
+```asm
+08               PHP
+E2 30            SEP #$30          ; 8-bit (D7BC body expects this)
+A2 0F            LDX #$0F          ; (replicates the LDX #$000F we removed)
+A0 08            LDY #$08
+d7bc_loop:
+  BF D2 D7 01      LDA.l $01:D7D2,x   ; cross-bank read of bank-$01 table
+  99 87 03         STA.w $0387,y
+  CA 88            DEX, DEY
+  D0 F5            BNE d7bc_loop
+A9 80 8D 7D 03   LDA #$80, STA $037D
+8D 87 03         STA $0387
+AD 07 06         LDA $0607         ; gate
+C9 02            CMP #$02
+D0 24            BNE skip_to_PLP_RTL
+C2 30            REP #$30          ; 16-bit
+A2 82 5C         LDX #$5C82        ; BG3 row 18 col 1
+A9 07 00         LDA #$0007
+48               PHA
+row_loop:
+  A0 1E 00         LDY #$001E
+  A9 00 00         LDA #$0000
+  inner:
+    9F 00 00 7E      STA.l $7E0000,x   ; BG3 only (X already at BG3 base)
+    E8 E8 88         INX, INX, DEY
+    D0 F7            BNE inner
+  8A 18 69 04 00 AA  TXA, CLC, ADC #$0004, TAX
+  68 3A 48           PLA, DEC, PHA
+  D0 E6              BNE row_loop
+68               PLA
+28 6B            PLP, RTL
+```
+
+Inlines `CODE_01D7BC`'s body (DMA list setup at `$0387` — needed every char-switch in both modes), then conditionally blanks BG3 only when `$0607 == $02`. BG1 doesn't need re-blanking because the char-switch render path doesn't touch it. The `LDA.l $01:D7D2,x` long-indexed read accesses the bank-$01 lookup table directly, avoiding the need for a bank-$01 trampoline.
+
+**Why the cross-bank inlining:** `CODE_01BE9B` runs in bank `$01`, and the natural fix would be a bank-$01 trampoline that does `JSR $D7BC` + blank + `JMP $BECE`. But bank `$01` has zero confirmed-free bytes. Inlining `D7BC`'s 14 bytes inside our bank-$0D stub avoids needing any bank-$01 space.
+
+---
+
 ## 6. Standalone patches — technical detail
 
 ### [`spo_sandman_stats_fix.ips`](../patches/standalone/spo_sandman_stats_fix.ips)
@@ -770,7 +862,9 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FACA–0x6FAF8` | 49 B | 12-record VERSUS descriptor |
 | `0x6FB03–0x6FB0B` | 9 B | "PLAYER 2" tile data |
 | `0x6FB0C–0x6FB61` | 86 B | `spo_credits.ips` descriptor + tile string + dispatch stub |
-| `0x6FB62–0x6FFE3` | ~1,154 B | **Free** |
+| `0x6FB62–0x6FB97` | 54 B | Versus opponent-select init blank stub (record [32]) |
+| `0x6FB98–0x6FBDE` | 71 B | Versus opponent-select char-switch blank stub (record [33]) |
+| `0x6FBDF–0x6FFE3` | ~1,029 B | **Free** |
 | `0x6FFB0–0x6FFDE` | 47 B | Stale bytes from earlier iterations (harmless, unreferenced) |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
 
