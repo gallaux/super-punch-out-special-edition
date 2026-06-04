@@ -5,7 +5,7 @@
 **Base ROM:** Super Punch-Out!! (USA, SNES) — MD5 `97fe7d7d2a1017f8480e60a365a373f0`
 **Apply with:** Lunar IPS, flips, or any standard IPS patcher. Always patch the **original, unmodified ROM**.
 
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_000" src="https://github.com/user-attachments/assets/f671137e-def2-47c2-846f-20748be57fa1" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_000" src="https://github.com/user-attachments/assets/dcd44da3-e7a0-441d-967d-4e4ea2cb5210" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/20bb0c6e-2d73-4ca2-ba18-6bb9584b7f50" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/0da9ee08-61ff-4a87-954b-c2f59fa8e373" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_003" src="https://github.com/user-attachments/assets/8bf624b7-9f18-40fa-9d36-f0ab3e8127a1" />
@@ -35,9 +35,9 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
 
-### [`spo_special_edition_v1.2.ips`](patches/spo_special_edition_v1.2.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.3.ips`](patches/spo_special_edition_v1.3.ips) — Special Edition (recommended)
 
-The full experience: `spo_versus_hack.ips` stacked with the first five standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
+The full experience: `spo_versus_hack.ips` stacked with the standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
 
 ### Standalone patches
 
@@ -47,9 +47,17 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 |---|---|
 | [`spo_sandman_stats_fix.ips`](patches/standalone/spo_sandman_stats_fix.ips) | Fixes Mr. Sandman's profile screen, which copies Super Macho Man's stats verbatim in US/EU. Restores the correct values from the Japanese version (age 30, weight 270 lbs, record 28-4). |
 | [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. |
-| [`spo_special_title_screen.ips`](patches/standalone/spo_special_title_screen.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
+| [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
+| [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. |
 | [`spo_disable_security_checksum.ips`](patches/standalone/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. |
 | [`spo_credits.ips`](patches/standalone/spo_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. |
+
+### Incomplete / experimental patches
+
+These are proof-of-concept patches with known bugs. Not included in the **Special Edition** and not recommended for general use:
+
+| File | What it does |
+|---|---|
 | [`spo_sound_mode_ui_incomplete.ips`](patches/incomplete/spo_sound_mode_ui_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu and shifts the full menu UI to make room for it. **Known bugs: pressing A on SOUND MODE triggers the DATA CLEAR menu instead; selecting NEW GAME or CONTINUE then moving the cursor in the name entry screen causes a CPU deadlock.** Wiring the actual Sound Library launch requires further investigation. Not included in the Special Edition and not recommended for general use. |
 
 ---
@@ -88,7 +96,6 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 ## Nice to have / todos
 
-- **"SPECIAL EDITION" on the title screen**: adding text or a sprite underneath the main game logo, that fades in and out with the rest of the title screen. Not feasible with current tooling — the title screen is entirely baked into a proprietary compressed tileset and tilemap (no runtime text rendering). Would require either a custom recompressor for the SPO compression format, ~19 KB of free ROM space for an uncompressed tilemap, or new letter tiles in the tileset.
 - **"SOUND MODE" menu implementation**: adding SOUND MODE to the title-screen menu is a known-problematic approach — adding a 4th item to the title screen cursor system causes a CPU deadlock in name entry due to the highlight renderer iterating beyond the valid layout table bounds. A proof-of-concept UI patch exists (`patches/incomplete/spo_sound_mode_ui_incomplete.ips`) but it has two unresolved bugs (A-button goes to DATA CLEAR; name entry deadlocks). Note that the Mode Select screen has a fully separate cursor system that reinitializes item counts on every entry — the same interference issue would not apply there.
 
 ---
@@ -99,7 +106,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining:** ~1,115 bytes in the confirmed garbage zone at bank $0D after the Versus hack. Bank $01 is fully consumed.
+- **Free space remaining:** ~910 bytes in the confirmed garbage zone at bank $0D after applying the complete Special Edition patch. Bank $01 is fully consumed.
 
 ---
 

@@ -17,6 +17,7 @@ The main patch is distributed as [`spo_versus_hack.ips`](../patches/standalone/s
 7. [Free space map](#7-free-space-map)
 8. [Text encoding and screen descriptor system](#8-text-encoding-and-screen-descriptor-system)
 9. [Key addresses quick reference](#9-key-addresses-quick-reference)
+10. [Title screen BG layout quirk](#10-title-screen-bg-layout-quirk)
 
 ---
 
@@ -292,12 +293,14 @@ These four patches rewrite the `LDX/STX` pairs that initialise items' `$20–$24
 
 ---
 
-### [10] File `0x00BBB3` + `0x00BBE5–BBF2` — Progress gate rewrite (14 bytes)
+### [10] File `0x00BBB3` + `0x00BBE2–BBF2` — Progress gate rewrite (17 bytes)
 
-Replaces the original conditional `INC`/`STZ` block (`$01:BBE5–BBF2`) with:
+Replaces the original conditional `INC`/`STZ` block (`$01:BBE2–BBF2`) with:
 
 ```asm
-INC $22        ; disable TIME ATTACK (conditional, via trampoline 1)
+JSR $8457      ; trampoline 1 — disables TIME ATTACK only when
+               ;   no progress AND not in VERSUS mode
+NOP            ; (padding)
 STZ $24        ; BUTTON SETTINGS always enabled (unconditional)
 LDA $700010,X  ; read Minor Championship progress flag
 BEQ +3         ; no progress: skip STZ $23
@@ -308,6 +311,18 @@ NOP
 ```
 
 This gives the correct two-state unlock behavior based on `$700010,X` (the SRAM Minor Circuit progress flag).
+
+---
+
+### [10b] Files `0x00BBC7`, `0x00BBD0`, `0x00BBD3` — Decoration tilemap + arrow positions for 5-item layout (6 bytes)
+
+Three 2-byte adjustments to header decoration and arrow sprite positions to match the new 5-item Mode Select layout (rows 5/9/13/17/21 instead of the original 9/13/17/21):
+
+| File offset | Old | New | Effect |
+|---|---|---|---|
+| `0x00BBC7` | `14 59` | `54 58` | MENU/SELECT decoration tilemap addr `$5994` → `$5854` (visual row 2) |
+| `0x00BBD0` | `10 01` | `50 00` | Left arrow position `$0110` → `$0050` |
+| `0x00BBD3` | `2E 01` | `6E 00` | Right arrow position `$012E` → `$006E` |
 
 ---
 
@@ -404,9 +419,9 @@ A9 04        LDA #$04    ; VERSUS: force 4 circuits (all characters always avail
 
 ---
 
-### [20] File `0x017FB0` — Back-out stub in bank `$02` (unused)
+### [20] (removed — historical only)
 
-Older versions used a cross-bank JML stub here for DPad-down; no longer referenced (superseded by the in-bank `$8463` stub). Bytes remain from earlier iterations but are harmless.
+Earlier iterations of this hack included a 36-byte cross-bank JML stub at file `0x017FB0` (SNES `$02:7FB0`) used as a DPad-down handler. It was superseded by the in-bank `$8463` stub (record [6]) and is no longer part of the current patch — bank `$02` is left untouched.
 
 ---
 
@@ -507,13 +522,16 @@ Length = 8. Tiles: P=`19`, L=`15`, A=`0A`, Y=`22`, E=`0E`, R=`1B`, space=`EF`, 2
 
 ---
 
-### [29] File `0x06FFB0` — "VERSUS" tile data (7 bytes, bank `$0D`)
+### [29] File `0x06FFB0` — "VERSUS" tile data + leftover descriptor (47 bytes, bank `$0D`)
 
 ```
-06 1F 0E 1B 1C 1E 1C
+Bytes 0x6FFB0–0x6FFB6 (7 B):  06 1F 0E 1B 1C 1E 1C       ; "VERSUS" tile data
+Bytes 0x6FFB7–0x6FFDE (40 B): 09 1C 08 53 0B 1C 14 53 …  ; layout descriptor (unreferenced)
 ```
 
-Same content as `$0x6FAC3`. This copy is referenced by the title-screen layout sub-table (separate from the opponent-select descriptor tile data).
+The first 7 bytes are the "VERSUS" tile data (length 6 + V-E-R-S-U-S), same content as record [26] at `$0x6FAC3`. This copy is referenced by the title-screen layout sub-table (separate from the opponent-select descriptor tile data).
+
+The remaining 40 bytes are a complete layout descriptor (WORLD/MAJOR/MINOR CIRCUIT rows + VERSUS MODE header) left over from an earlier iteration that placed the VERSUS opponent-select descriptor at `$0D:FFB7` before it was relocated to `$0D:FACA` (record [27]). No DA3DA pointer currently references `$FFB7`, so these 40 bytes are functionally dead. They could be removed in a future patch cleanup but are harmless as-is.
 
 ---
 
@@ -644,7 +662,7 @@ Three single-byte changes at SNES `$01:DF83`/`$DF92`/`$DF95` (file `0xDF83–0xD
 
 ---
 
-### [`spo_special_title_screen.ips`](../patches/standalone/spo_special_title_screen.ips)
+### [`spo_title_screen_special_ring.ips`](../patches/standalone/spo_title_screen_special_ring.ips)
 
 **What it does:** Replaces the title-screen ring logo and background color palette with the Special Circuit variants. The SUPER PUNCH-OUT!! logo is unchanged; only the ring artwork and colors behind and around it are swapped. All in-game circuit screens are unaffected — only the title screen is altered.
 
@@ -771,6 +789,48 @@ AB                 PLB
 
 **Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes). Conflicts with `spo_sound_mode_ui_incomplete.ips`, which also uses `$0D:FB0C+` — the two patches cannot be applied together.
 
+### [`spo_title_screen_special_logo.ips`](../patches/standalone/spo_title_screen_special_logo.ips)
+
+**What it does:** Writes the text **SPECIAL EDITION** into the title screen's BG3 tilemap buffer at row 12, cols 6–22 (with a one-tile gap between SPECIAL and EDITION), using the standard menu font (palette 2, priority 1). Rendered every time the title screen BG init routine runs.
+
+**Hook** (6 bytes at file `0x44906`, SNES `$08:C906`):
+
+```
+Old: A0 01 18  8C 00 43   LDY.w #$1801 / STY.w $4300
+New: 22 DF FB 0D  EA EA   JSL $0D:FBDF / NOP / NOP
+```
+
+This is the 6 bytes immediately after the last `JSL CODE_08C433` call in `CODE_08C8AB` (the title screen BG init routine). The two displaced instructions are re-executed at the top of the stub.
+
+**Stub** (109 bytes at `$0D:FBDF`, file `0x6FBDF`):
+
+```asm
+A0 01 18        LDY.w #$1801        ; displaced instr 1
+8C 00 43        STY.w $4300         ; displaced instr 2
+C2 20           REP #$20            ; 16-bit A
+A9 1C 28        LDA.w #$281C        ; S  → WRAM $530C
+8F 0C 53 7E     STA.l $7E530C
+...             (13 more LDA/STA pairs for P,E,C,I,A,L,_,E,D,I,T,I,O,N)
+A9 17 28        LDA.w #$2817        ; N  → WRAM $532A
+8F 2A 53 7E     STA.l $7E532A
+E2 20           SEP #$20            ; restore 8-bit A
+6B              RTL
+```
+
+Tile entry format: `$28XX` = priority 1, palette 2, tile index XX. Font encoding: A–Z = `$0A–$23`. The space between words (col 13 = WRAM `$531A`) is left unwritten — the background fill tile at that position acts as the gap.
+
+**BG3 tilemap address formula (title screen):**
+
+```
+WRAM = $5000 + row × 64 + col × 2
+```
+
+The `$5000` block is DMA'd to VRAM `$4C00` by `CODE_08C8AB`. Despite `BG3SC` (`$2109`) being set to `$59` (→ VRAM `$5800`) elsewhere in the title screen init, empirically the `$5000` block (→ VRAM `$4C00`) is the buffer that renders as BG3 and carries the menu font. Writing to the `$6000` block (→ VRAM `$5800`) lands on BG1 instead. The static register assignment in the disassembly (`$59` at file `0x43FD9`) does not fully describe the runtime BG assignment — see [section 10](#10-title-screen-bg-layout-quirk).
+
+**Free space consumed:** `$0D:FBDF–$0D:FC4B` (109 bytes). Does not conflict with any other patch.
+
+---
+
 ### [`spo_sound_mode_ui_incomplete.ips`](../patches/incomplete/spo_sound_mode_ui_incomplete.ips)
 
 **What it does:** Adds a SOUND MODE entry to the title-screen menu and shifts the entire menu UI up by 4 rows to accommodate it. The menu now shows NEW GAME / CONTINUE / DATA / CLEAR / SOUND MODE across rows 9/13/17/17/21. Cursor highlight, OAM sprite, arrows, and the MENU/<<SELECT decoration header all shift consistently.
@@ -826,7 +886,7 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 6B                 RTL
 ```
 
-**Free space consumed:** `$0D:FB0C–$0D:FB4B` (64 bytes). Free block remainder: `$0D:FB4C–$0D:FFE3` (~1,176 bytes).
+**Free space consumed:** `$0D:FB0C–$0D:FB4B` (64 bytes). This range conflicts with `spo_credits.ips`, which also uses `$0D:FB0C+`. The two patches are mutually exclusive — see the [free space map](#7-free-space-map) for the full bank-$0D layout under the current Special Edition.
 
 
 ## 7. Free space map
@@ -846,9 +906,7 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 
 ### Bank `$02` (file `0x10000–0x17FFF`)
 
-| Range | Size | Status |
-|---|---|---|
-| `0x17FB0–0x17FD3` | 36 B | Contains stale DPad-down stub from v9 era (no longer referenced) |
+No bytes consumed by the current Versus hack. Bank `$02` is untouched.
 
 ### Bank `$0D` (file `0x68000–0x6FFFF`)
 
@@ -864,8 +922,10 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FB0C–0x6FB61` | 86 B | `spo_credits.ips` descriptor + tile string + dispatch stub |
 | `0x6FB62–0x6FB97` | 54 B | Versus opponent-select init blank stub (record [32]) |
 | `0x6FB98–0x6FBDE` | 71 B | Versus opponent-select char-switch blank stub (record [33]) |
-| `0x6FBDF–0x6FFE3` | ~1,029 B | **Free** |
-| `0x6FFB0–0x6FFDE` | 47 B | Stale bytes from earlier iterations (harmless, unreferenced) |
+| `0x6FBDF–0x6FC4B` | 109 B | `spo_title_screen_special_logo.ips` stub |
+| `0x6FC4C–0x6FFAF` | ~864 B | **Free** |
+| `0x6FFB0–0x6FFDE` | 47 B | "VERSUS" tile data (7 B) + leftover descriptor (40 B, unreferenced) — record [29] |
+| `0x6FFDF–0x6FFE3` | 5 B | Free |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
 
 > The same `$0D:FB0C–$0D:FB4B` range is also written by `spo_sound_mode_ui_incomplete.ips` (64 B for the title-screen sound-mode layout table + stub). These two patches **cannot be applied together** — they are mutually exclusive layouts of the same free space.
@@ -952,6 +1012,8 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$01:E0A3` | `0xE0A3` | A-button dispatch |
 | `$01:E25F` | `0xE25F` | Cursor update done: play sound, update OAM, PLB;RTL |
 | `$01:BB7D` | `0xBB7D` | Mode Select + Championship menu init |
+| `$01:BE8C` | `0xBE8C` | Versus/Time Attack opponent-select runloop entry |
+| `$01:BE9B` | `0xBE9B` | Char-switch render path (re-renders score data when `$0C80 == $86`) |
 | `$01:C905` | `0xC905` | `$07E3` → mode dispatch (48 bytes, partially overwritten) |
 | `$01:C74C` | `0xC74C` | `INC $03; INC $03; PLB; RTL` |
 | `$01:C752` | `0xC752` | `INC $01; INC $01; PLB; RTL` |
@@ -991,9 +1053,35 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FB0C` | `0x6FB0C` | New Records View select-screen descriptor (`spo_credits.ips`) |
 | `$0D:FB31` | `0x6FB31` | "CREDITS" tile string |
 | `$0D:FB39` | `0x6FB39` | A-button dispatch stub for Records View select |
+| `$0D:FBDF` | `0x6FBDF` | `spo_title_screen_special_logo.ips` stub |
 | `$0D:FFE4` | `0x6FFE4` | Interrupt vectors — untouchable |
 | `$01:B132` | `0x0B132` | `$01`-indexed dispatch table |
 | `$01:B13D` | `0x0B13D` | `$03`-indexed title-screen state table |
 | `$01:BB66` | `0x0BB66` | `$03`-indexed table for `$01=4` |
 | `$01:BB73` | `0x0BB73` | `$05`-indexed Championship sub-machine table |
 | `$01:BC76` | `0x0BC76` | `$05`-indexed Mode Select state machine table |
+
+---
+
+## 10. Title screen BG layout quirk
+
+`CODE_08C8AB` (the title screen BG init, SNES `$08:C8AB`) runs two DMA transfers:
+
+| Source WRAM | VRAM destination | Expected BG (from `$2109`) |
+|---|---|---|
+| `$5000–$57FF` | `$4C00` | — |
+| `$6000–$67FF` | `$5800` | BG3 (`BG3SC = $59`) |
+
+`$2109` (BG3SC) is set to `$59` (→ VRAM `$5800`) at file `0x43FD9`. The natural reading is that the `$6000` block renders as BG3 and `$5000` as something else. **This is wrong in practice.**
+
+Empirically, writing menu font tiles (`$28XX`, palette 2) to the `$6000` block renders them on BG1; writing to the `$5000` block renders them on BG3 with the correct font. The `$5000` block (→ VRAM `$4C00`) is the tilemap that carries the menu character set and shows as BG3 on the title screen.
+
+The likely explanation is that BG1SC (`$2107`) is also set to `$59` (→ VRAM `$5800`) by the NMI/VBLANK handler's PPU register upload — which copies configuration tables to hardware every frame and is not captured by the single explicit `STA $2109` in the static disassembly. Both BG1 and BG3 would then share VRAM `$5800` as their tilemap, but with different character data (CHR) base addresses: BG3's CHR contains the ring artwork, BG1's CHR contains the menu font. Writing to VRAM `$5800` (via the `$6000` WRAM buffer) renders as BG1 because BG1 has priority and its CHR has the letter glyphs at those tile indices; BG3 at the same tilemap renders ring-art tiles at those indices. Writing to VRAM `$4C00` (via the `$5000` buffer) hits BG3's exclusive tilemap where the font CHR applies.
+
+**Practical rule for anyone continuing this work:** to write visible text on the title screen using the menu font, target the `$5000` WRAM buffer. WRAM address formula:
+
+```
+WRAM = $5000 + row × 64 + col × 2
+```
+
+The `$6000` buffer is the ring artwork layer (BG1 with ring CHR); modifying it affects the ring floor graphics, not text.
