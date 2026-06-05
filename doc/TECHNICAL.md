@@ -2,7 +2,8 @@
 
 This document covers the full reverse-engineering and implementation details behind the patches described in [README.md](../README.md). It is intended for ROM hackers, the technically curious, and anyone who wants to continue this work.
 
-The main patch is distributed as [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips).
+The recommended distribution is the bundled [`spo_special_edition_v1.4.ips`](../patches/spo_special_edition_v1.4.ips), which stacks every patch in this repo.
+The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE and disables the Special Circuit security checksum lock; everything else (profile stat fixes, JP charset, title-screen tweaks, credits entry) layers on top as standalone patches.
 
 ---
 
@@ -172,7 +173,7 @@ Our patch inserts a JMP at `$C90E` to redirect all indices ≥ 1 through a 5-ite
 
 ## 5. Versus Hack — patch-by-patch breakdown
 
-All records are applied to the original unmodified ROM. Records are listed in file-offset order. Every patch in this repository includes checksum record at file `0x7FDC` (4 bytes) that updates the SNES header complement/checksum fields so the patched ROM passes the hardware integrity check.
+All records are applied to the original unmodified ROM. Records are listed in file-offset order. Every patch in this repository includes a checksum record at file `0x7FDC` (2-4 bytes, depending on which header complement/checksum bytes change) that updates the SNES header so the patched ROM passes the hardware integrity check.
 
 
 ---
@@ -338,7 +339,7 @@ OAM cursor Y formula: `Y = item_index × $20 + $53 + 1`. Adjusting `$53` from `$
 
 ---
 
-### [12] File `0x00BCAA` — Circuit count: JSR $D641 → JSR $FFD7 (2 bytes)
+### [12] File `0x00BCAA` — Circuit count: JSR $D641 → JSR $FFD3 (2 bytes)
 
 Redirects the JSR that reads available circuit count from SRAM to our trampoline 2.
 
@@ -356,58 +357,60 @@ Redirects the back-out button handler in opponent select to our clear stub.
 
 ---
 
-### [15] File `0x00C8EE` — Confirm dispatch hook (4 bytes)
-
-```
-Old: C9 01 F0 0F   CMP #$01; BEQ +$0F
-New: 5C B0 FF 02   JML $02:FFB0
-```
-
-At SNES `$01:C8EE`. The `BEQ $C8FA` at `$01:C8EC` already handles index 0 (NEW GAME) before we reach this point. The JML hands off A (= `$07E0`, cursor index 1+) to our 5-item dispatch stub in bank `$02`.
-
----
-
-### [16] File `0x00C90E` — Mode Select confirm: JMP to dispatch stub (3 bytes)
+### [15] File `0x00C90E` — Mode Select confirm: JMP to dispatch stub (3 bytes)
 
 ```
 Old: C9 01 F0   CMP #$01; BEQ ...  (top of 4-item chain)
 New: 4C B0 FF   JMP $FFB0
 ```
 
-At SNES `$01:C90E`, reached after `$07E3=0` (CHAMPIONSHIP) has already been handled by `BEQ $C91C` at `$C90C`. Hands A (= `$07E3`, item index 1+) to our 5-item stub in bank `$01` free space.
+At SNES `$01:C90E`, reached after `$07E3=0` (CHAMPIONSHIP) has already been handled by `BEQ $C91C` at `$C90C`. Hands A (= `$07E3`, item index 1+) to our 5-item stub in bank `$01` free space. This is the only confirm site that needs hooking — the post-Start dispatcher at `$01:C8E9` must **not** be patched (see [section 9](#9-key-addresses-quick-reference)).
 
 ---
 
-### [17] File `0x00FFB0` — 5-item Mode Select dispatch stub (22 bytes, SNES `$01:FFB0`)
+### [16] File `0x00FFB0` — 5-item Mode Select dispatch stub (19 bytes, SNES `$01:FFB0`)
 
 ```asm
 C9 01        CMP #$01
-F0 19        BEQ +$19   ; → $FFC3 (VERSUS entry)
+F0 15        BEQ +$15   ; → $FFC9 (VERSUS handler — record [18])
 C9 02        CMP #$02
-F0 0F        BEQ +$0F   ; → $FFC7 (TIME ATTACK)
+F0 0B        BEQ +$0B   ; → $FFC3 (TIME ATTACK trampoline — record [17])
 C9 03        CMP #$03
-F0 0F        BEQ +$0F   ; → $FFCA (RECORDS VIEW: STZ $B200; JMP $C926)
-A9 06        LDA #$06
-85 03        STA $03     ; BUTTON SETTINGS ($03=6)
+F0 0A        BEQ +$0A   ; → $FFC6 (RECORDS VIEW trampoline — record [17])
+A9 06        LDA #$06    ; BUTTON SETTINGS fall-through
+85 03        STA $03
 4C 51 C9     JMP $C951   ; → STZ $05/$07; PLB; RTL
-; VERSUS entry ($FFC3):
-5C 9C B2 00  JML $00:B29C  ; → VS mode launcher
 ```
+
+Occupies `$FFB0–$FFC2`. The trampolines and handlers that follow at `$FFC3` are packed contiguously immediately after — Versus routes through the Time Attack state machine (see Section 4) rather than directly launching the secret VS menu, so no separate VS-launcher path is needed.
 
 ---
 
-### [18] File `0x00FFC7` — TIME ATTACK + RECORDS VIEW trampolines (6 bytes)
+### [17] File `0x00FFC3` — TIME ATTACK + RECORDS VIEW trampolines (6 bytes)
 
 ```asm
-; $FFC7 — TIME ATTACK:
+; $FFC3 — TIME ATTACK:
 4C 26 C9     JMP $C926   ; STA $0607=#$01; STZ $05; JMP $C74C
-; $FFCA — RECORDS VIEW:
+; $FFC6 — RECORDS VIEW:
 4C 30 C9     JMP $C930   ; LDA #$04; STA $03; BRA $C951
 ```
 
 ---
 
-### [19] File `0x00FFD7` — Trampoline 2: conditional circuit count (13 bytes, SNES `$01:FFD7`)
+### [18] File `0x00FFC9` — VERSUS handler (10 bytes, SNES `$01:FFC9`)
+
+```asm
+A9 02        LDA #$02
+8D 07 06     STA $0607   ; mode flag = VERSUS
+64 05        STZ $05
+4C 4C C7     JMP $C74C   ; INC $03 ×2; PLB; RTL
+```
+
+This is the actual VERSUS entry reached by the `BEQ +$15` at `$FFB2`. Structurally identical to the original TIME ATTACK dispatch (`STA $0607=#$01; STZ $05; JMP $C74C`) but with `$0607=$02` so the conditional stubs (header at `$8018`, trampolines, table-hide stubs) all key off the Versus path while reusing the Time Attack state machine.
+
+---
+
+### [19] File `0x00FFD3` — Trampoline 2: conditional circuit count (13 bytes, SNES `$01:FFD3`)
 
 ```asm
 AD 07 06     LDA $0607
@@ -418,15 +421,11 @@ A9 04        LDA #$04    ; VERSUS: force 4 circuits (all characters always avail
 60           RTS
 ```
 
----
-
-### [20] (removed — historical only)
-
-Earlier iterations of this hack included a 36-byte cross-bank JML stub at file `0x017FB0` (SNES `$02:7FB0`) used as a DPad-down handler. It was superseded by the in-bank `$8463` stub (record [6]) and is no longer part of the current patch — bank `$02` is left untouched.
+Trampoline 2's RTS sits at `$FFDF`. The 4 bytes at `$FFE0–$FFE3` are **free** (immediately before the interrupt vectors).
 
 ---
 
-### [21] File `0x06A38C` — DA332[`$2D`] pointer redirect (2 bytes)
+### [20] File `0x06A38C` — DA332[`$2D`] pointer redirect (2 bytes)
 
 ```
 Old: (prototype fighter name garbage)
@@ -437,16 +436,18 @@ Repurposes text index `$2D` to point to the new "PLAYER 2" tile data.
 
 ---
 
-### [22] File `0x06A3A0` — DA332[`$37`] pointer redirect (2 bytes)
+### [21] File `0x06A3A0` — DA332[`$37`] pointer redirect (2 bytes)
 
 ```
-Old: B0 FF   → old "VERSUS" tile data at $FFB0 (stale, superseded)
-New: C3 FA   → current "VERSUS" tile data at $FAC3
+Old: B5 AC   → original DA332[$37] entry (unrelated game text — index $37 was unused for menus)
+New: C3 FA   → "VERSUS" tile data at $FAC3
 ```
+
+DA332 index `$37` is repurposed by this hack as the VERSUS tile-string slot, since it pointed at non-menu data in the original ROM.
 
 ---
 
-### [23] File `0x06A3DE` — DA3DA entry 2 pointer (2 bytes)
+### [22] File `0x06A3DE` — DA3DA entry 2 pointer (2 bytes)
 
 ```
 Old: 6A AD   → original Mode Select layout sub-table at $AD6A
@@ -455,16 +456,18 @@ New: 86 FA   → new layout sub-table at $FA86
 
 ---
 
-### [24] File `0x06A47E` — DA3DA entry `$A4` pointer (2 bytes)
+### [23] File `0x06A47E` — DA3DA byte-offset `$A4` pointer (2 bytes)
 
 ```
-Old: B7 FF   → stale VERSUS descriptor (superseded)
+Old: 88 51   → original pointer (unused/garbage in original ROM — entry was not referenced)
 New: CA FA   → current 12-record VERSUS descriptor at $FACA
 ```
 
+DA3DA byte-offset `$A4` (entry index 82) is repurposed by this hack to point at the new VERSUS opponent-select descriptor. The original pointer led to garbage; nothing in the unmodified game routed through it.
+
 ---
 
-### [25] File `0x06FA86` — New Mode Select layout sub-table (61 bytes)
+### [24] File `0x06FA86` — New Mode Select layout sub-table (61 bytes)
 
 ```
 0D 1C 4E 51   CHAMPIONSHIP  row 5  col 7   ($514E)
@@ -486,7 +489,7 @@ New: CA FA   → current 12-record VERSUS descriptor at $FACA
 
 ---
 
-### [26] File `0x06FAC3` — "VERSUS" tile data (7 bytes)
+### [25] File `0x06FAC3` — "VERSUS" tile data (7 bytes)
 
 ```
 06 1F 0E 1B 1C 1E 1C
@@ -496,7 +499,7 @@ Format: `[length][tile…]`. Length = 6. Tiles: V=`1F`, E=`0E`, R=`1B`, S=`1C`, 
 
 ---
 
-### [27] File `0x06FACA` — 12-record VERSUS opponent-select descriptor (49 bytes)
+### [26] File `0x06FACA` — 12-record VERSUS opponent-select descriptor (49 bytes)
 
 Full descriptor for the VERSUS opponent-select screen (used when `$0607=$02`). Contains all four circuit rows (Special, World, Major, Minor), the VERSUS MODE header at row 2, and the `< PLAYER 2 SELECT >` row.
 
@@ -513,7 +516,7 @@ Key records:
 
 ---
 
-### [28] File `0x06FB03` — "PLAYER 2" tile data (9 bytes)
+### [27] File `0x06FB03` — "PLAYER 2" tile data (9 bytes)
 
 ```
 08 19 15 0A 22 0E 1B EF 02
@@ -523,42 +526,29 @@ Length = 8. Tiles: P=`19`, L=`15`, A=`0A`, Y=`22`, E=`0E`, R=`1B`, space=`EF`, 2
 
 ---
 
-### [29] File `0x06FFB0` — "VERSUS" tile data + leftover descriptor (47 bytes, bank `$0D`)
-
-```
-Bytes 0x6FFB0–0x6FFB6 (7 B):  06 1F 0E 1B 1C 1E 1C       ; "VERSUS" tile data
-Bytes 0x6FFB7–0x6FFDE (40 B): 09 1C 08 53 0B 1C 14 53 …  ; layout descriptor (unreferenced)
-```
-
-The first 7 bytes are the "VERSUS" tile data (length 6 + V-E-R-S-U-S), same content as record [26] at `$0x6FAC3`. This copy is referenced by the title-screen layout sub-table (separate from the opponent-select descriptor tile data).
-
-The remaining 40 bytes are a complete layout descriptor (WORLD/MAJOR/MINOR CIRCUIT rows + VERSUS MODE header) left over from an earlier iteration that placed the VERSUS opponent-select descriptor at `$0D:FFB7` before it was relocated to `$0D:FACA` (record [27]). No DA3DA pointer currently references `$FFB7`, so these 40 bytes are functionally dead. They could be removed in a future patch cleanup but are harmless as-is.
-
----
-
-### Versus opponent-select table-hide (records [30]-[33])
+### Versus opponent-select table-hide (records [28]-[31])
 
 The opponent-select screen normally shows a BEST TIME / YOUR BEST table populated from the Time Attack save data. On Versus that table is meaningless. The following four patch records blank that table region (a 30×7 tile rectangle, both BG layers) when entering from Versus, so the screen looks like a clean opponent picker. The blanking is gated on `$0607 == $02` so Time Attack's score table renders normally.
 
-### [30] File `0x0BE7A` — Init hook for Versus opponent-select table-hide (4 bytes)
+### [28] File `0x0BE7A` — Init hook for Versus opponent-select table-hide (4 bytes)
 
 ```
 Old: 22 DD F3 0E   JSL $0E:F3DD
 New: 22 62 FB 0D   JSL $0D:FB62
 ```
 
-Replaces the existing `JSL $0E:F3DD` near the end of the opponent-select init (just before the final DMA upload at `$01:B3BF`). The new target is a stub at `$0D:FB62` which calls `JSL $0E:F3DD` itself (preserving exact original behavior), then conditionally blanks the BEST TIME / YOUR BEST table region when `$0607 == $02` (Versus mode). See [33].
+Replaces the existing `JSL $0E:F3DD` near the end of the opponent-select init (just before the final DMA upload at `$01:B3BF`). The new target is a stub at `$0D:FB62` which calls `JSL $0E:F3DD` itself (preserving exact original behavior), then conditionally blanks the BEST TIME / YOUR BEST table region when `$0607 == $02` (Versus mode). See [30].
 
-### [31] File `0x0BEC8` — Char-switch hook for Versus opponent-select table-hide (6 bytes)
+### [29] File `0x0BEC8` — Char-switch hook for Versus opponent-select table-hide (6 bytes)
 
 ```
 Old: A2 0F 00 20 BC D7   LDX #$000F / JSR $D7BC
 New: 22 98 FB 0D EA EA   JSL $0D:FB98 / NOP / NOP
 ```
 
-Replaces the last two instructions of `CODE_01BE9B` (the char-switch render path that runs when `$0C80 == $86`). The stub at `$0D:FB98` inlines `D7BC`'s body (an 8-byte DMA list copy from `DATA_01D7D2` to `$0387`+ — required for both modes), then conditionally blanks BG3 only when `$0607 == $02`. The two NOPs after the JSL fall harmlessly through to `CODE_01BECE`. See [34].
+Replaces the last two instructions of `CODE_01BE9B` (the char-switch render path that runs when `$0C80 == $86`). The stub at `$0D:FB98` inlines `D7BC`'s body (an 8-byte DMA list copy from `DATA_01D7D2` to `$0387`+ — required for both modes), then conditionally blanks BG3 only when `$0607 == $02`. The two NOPs after the JSL fall harmlessly through to `CODE_01BECE`. See [31].
 
-### [32] File `0x06FB62` — Init blanking stub (54 bytes, SNES `$0D:FB62`)
+### [30] File `0x06FB62` — Init blanking stub (54 bytes, SNES `$0D:FB62`)
 
 ```asm
 22 DD F3 0E      JSL $0E:F3DD     ; original work, always
@@ -587,7 +577,7 @@ row_loop:
 
 Blanks a 30-col × 7-row rectangle (cols 1-30, rows 18-24) on both BG1 and BG3 by writing `$0000` (tile 0, palette 0 — universally transparent). BG3 tilemap is at WRAM `$5800-$5FFF`, exactly `$0800` above BG1 at `$5000`, so a single inner loop writes both layers without extra arithmetic.
 
-### [33] File `0x06FB98` — Char-switch blanking stub (71 bytes, SNES `$0D:FB98`)
+### [31] File `0x06FB98` — Char-switch blanking stub (71 bytes, SNES `$0D:FB98`)
 
 ```asm
 08               PHP
@@ -692,9 +682,7 @@ Bank `$0E` header table: `+$00` = MainMenu font, `+$02` = MinorCircuit, `+$04` =
 
 ### [`spo_disable_security_checksum.ips`](../patches/standalone/spo_disable_security_checksum.ips)
 
-The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack.
-
-IPS hex (15 bytes): `5041544348003c230002a900454f46`
+The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack, plus a 3-byte SNES-header checksum fix-up at file `0x7FDC`.
 
 ### [`spo_credits.ips`](../patches/standalone/spo_credits.ips)
 
@@ -915,7 +903,8 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 | `0x8463–0x8468` | 6 B | Back-out clear stub |
 | `0x841F–0x842A` | 12 B | **NOT SAFE** — null entries in `DATA_01840B` (AI opcode table, opcodes `$14–$1E`) |
 | `0x875F–0x8766` | 8 B | **NOT SAFE** — `$FF` fill inside `DATA_01872F` (128-byte game data table) |
-| `0xFFB0–0xFFE3` | 52 B | Consumed by stubs |
+| `0xFFB0–0xFFDF` | 48 B | Consumed by dispatch stub + trampolines + handlers |
+| `0xFFE0–0xFFE3` | 4 B | **Free** |
 
 ### Bank `$02` (file `0x10000–0x17FFF`)
 
@@ -927,19 +916,20 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 
 | Range | Size | Contents |
 |---|---|---|
-| `0x6FA69–0x6FA85` | 29 B | Free |
-| `0x6FA86–0x6FAC2` | 61 B | VERSUS score descriptor |
+| `0x6FA69–0x6FA85` | 29 B | **Free** |
+| `0x6FA86–0x6FAC2` | 61 B | New Mode Select layout sub-table |
 | `0x6FAC3–0x6FAC9` | 7 B | "VERSUS" tile data |
-| `0x6FACA–0x6FAF8` | 49 B | 12-record VERSUS descriptor |
+| `0x6FACA–0x6FAFA` | 49 B | 12-record VERSUS opponent-select descriptor |
+| `0x6FAFB–0x6FB02` | 8 B | **Free** |
 | `0x6FB03–0x6FB0B` | 9 B | "PLAYER 2" tile data |
 | `0x6FB0C–0x6FB61` | 86 B | `spo_credits.ips` descriptor + tile string + dispatch stub |
-| `0x6FB62–0x6FB97` | 54 B | Versus opponent-select init blank stub (record [32]) |
-| `0x6FB98–0x6FBDE` | 71 B | Versus opponent-select char-switch blank stub (record [33]) |
+| `0x6FB62–0x6FB97` | 54 B | Versus opponent-select init blank stub (record [30]) |
+| `0x6FB98–0x6FBDE` | 71 B | Versus opponent-select char-switch blank stub (record [31]) |
 | `0x6FBDF–0x6FC4B` | 109 B | `spo_title_screen_special_logo.ips` stub |
-| `0x6FC4C–0x6FFAF` | ~864 B | **Free** |
-| `0x6FFB0–0x6FFDE` | 47 B | "VERSUS" tile data (7 B) + leftover descriptor (40 B, unreferenced) — record [29] |
-| `0x6FFDF–0x6FFE3` | 5 B | Free |
+| `0x6FC4C–0x6FFE3` | 920 B | **Free** |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
+
+**Free space totals after Special Edition v1.4:** 29 + 8 + 920 = **957 bytes** in bank `$0D`, plus 4 bytes in bank `$01` at `$FFE0–$FFE3`. Total free space: **961 bytes**.
 
 > The same `$0D:FB0C–$0D:FB4B` range is also written by `spo_sound_mode_ui_incomplete.ips` (64 B for the title-screen sound-mode layout table + stub). These two patches **cannot be applied together** — they are mutually exclusive layouts of the same free space.
 

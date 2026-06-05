@@ -106,7 +106,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining:** ~910 bytes in the confirmed garbage zone at bank $0D after applying the complete Special Edition patch. Bank $01 is fully consumed.
+- **Free space remaining:** 957 bytes free in bank $0D plus 4 bytes free at the end of bank $01 (`$01:FFE0–$FFE3`) after applying the complete Special Edition patch — **961 bytes** total.
 
 ---
 
