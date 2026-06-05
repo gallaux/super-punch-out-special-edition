@@ -172,7 +172,8 @@ Our patch inserts a JMP at `$C90E` to redirect all indices ≥ 1 through a 5-ite
 
 ## 5. Versus Hack — patch-by-patch breakdown
 
-All records are applied to the original unmodified ROM. Records are listed in file-offset order.
+All records are applied to the original unmodified ROM. Records are listed in file-offset order. Every patch in this repository includes checksum record at file `0x7FDC` (4 bytes) that updates the SNES header complement/checksum fields so the patched ROM passes the hardware integrity check.
+
 
 ---
 
@@ -629,19 +630,31 @@ Inlines `CODE_01D7BC`'s body (DMA list setup at `$0387` — needed every char-sw
 
 ## 6. Standalone patches — technical detail
 
-### [`spo_sandman_stats_fix.ips`](../patches/standalone/spo_sandman_stats_fix.ips)
+### [`spo_profile_stats_fix.ips`](../patches/standalone/spo_profile_stats_fix.ips)
 
-**What it does:** Corrects Mr. Sandman's profile screen, which shows the wrong stats (Super Macho Man's age, weight, and record) due to a copy-paste error in the original source. After patching, Sandman shows his correct values from the Japanese version: age 30, weight 270 lbs, record 28-4. Those values are also confirmed in the game's manual.
+**What it does:** Corrects Mr. Sandman's profile screen (wrong stats copied from Super Macho Man) and Mad Clown's profile screen (weight listed as 390 lbs instead of 370 lbs).
 
-**Problem:** Mr. Sandman's profile data at file `0x42CD1` is a copy of Super Macho Man's record (`$08AC89`). A copy-paste error in the original source.
+After patching:
+- Mr. Sandman: age 30, weight 270 lbs, record 28-4 (correct JP values, also confirmed in the game's manual)
+- Mad Clown: weight 370 lbs
+
+**Problem 1 — Sandman:** Mr. Sandman's profile data at file `0x42CD1` is a copy of Super Macho Man's record (`$08AC89`). A copy-paste error in the original source.
+
+**Problem 2 — Mad Clown:** Mad Clown's weight at file `0x42CA5` is `0x19` ("9"), giving "390 lbs". The correct value is `0x17` ("7"), giving "370 lbs".
 
 **Data format:** `[country][0A][age 2 digits][0A][weight 2 digits][0A][record][00]`
 Font encoding: digits `0–9` = `$10–$19`, dash = `$F4`. Weight is stored as 2 digits; the renderer appends a literal "0" ("27" → "270 lbs").
 
-**Fix:** 10 bytes at file `0x42CD8`:
+**Sandman fix:** 10 bytes at file `0x42CD8`:
 ```
 Old: 12 18 0A 12 13 0A 12 19 F4 13   ("28", "23", "29-3" — Macho's stats)
 New: 13 10 0A 12 17 0A 12 18 F4 14   ("30", "27", "28-4" — correct JP values)
+```
+
+**Mad Clown fix:** 1 byte at file `0x42CA5`:
+```
+Old: 19   (digit "9" → 390 lbs)
+New: 17   (digit "7" → 370 lbs)
 ```
 
 ---

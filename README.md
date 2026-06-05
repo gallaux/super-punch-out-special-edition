@@ -35,7 +35,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
 
-### [`spo_special_edition_v1.3.ips`](patches/spo_special_edition_v1.3.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.4.ips`](patches/spo_special_edition_v1.4.ips) — Special Edition (recommended)
 
 The full experience: `spo_versus_hack.ips` stacked with the standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
 
@@ -45,7 +45,7 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 
 | File | What it does |
 |---|---|
-| [`spo_sandman_stats_fix.ips`](patches/standalone/spo_sandman_stats_fix.ips) | Fixes Mr. Sandman's profile screen, which copies Super Macho Man's stats verbatim in US/EU. Restores the correct values from the Japanese version (age 30, weight 270 lbs, record 28-4). |
+| [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. |
 | [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. |
 | [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
 | [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. |
