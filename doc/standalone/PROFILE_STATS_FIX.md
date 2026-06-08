@@ -1,0 +1,34 @@
+# `spo_profile_stats_fix.ips` — Summary
+
+Corrects two profile-screen stat errors present in the US/EUR ROM — both classic copy-paste bugs in the original game's data. Both correct values match the US manual and the later-released Japanese version.
+
+## What it fixes
+
+- **Mr. Sandman's profile stats**: originally a verbatim copy of Super Macho Man's record (`28-23-29-3`). Restored to the correct values: age 30, weight 270 lbs, record 28-4.
+- **Mad Clown's weight**: incorrectly listed as 390 lbs. Restored to 370 lbs.
+
+## Patch records
+
+2 records, 11 bytes total (plus the SNES header checksum):
+
+| File offset | Bytes | Effect |
+|---|---|---|
+| `0x42CA5` | 1 | Mad Clown weight digit `9` → `7` (390 lbs → 370 lbs) |
+| `0x42CD8` | 10 | Mr. Sandman's age / weight / record bytes — Macho Man's stats overwritten with Sandman's correct values |
+
+Stats data format: `[country] $0A [age 2 digits] $0A [weight 2 digits] $0A [record] $00`. Font encoding: digits `0-9` = `$10-$19`, dash = `$F4`. Weight stores 2 digits; the renderer appends a literal "0" (so "27" displays as "270 lbs").
+
+## Free space consumed
+
+None. Both records are in-place edits to existing data.
+
+## Compatibility
+
+- **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
+- **Bundled into**: `spo_special_edition_v1.5.ips`
+- **Conflicts with**: nothing in this repo
+- **Cheat-code compatibility**: unaffected
+
+## See also
+
+For the full breakdown of the data format and original/replacement byte sequences, see the `spo_profile_stats_fix.ips` entry in [doc/TECHNICAL.md § 6](../TECHNICAL.md).

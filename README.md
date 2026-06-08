@@ -29,28 +29,41 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ---
 
+## What's in the Special Edition
+
+- **VERSUS MODE** added to the Mode Select menu — 2-player matches launch directly, no secret button combo required
+- **Either controller can pick on the opponent-select screen** — P2 can choose their own fighter without handing the controller back
+- **Typo fixes:**
+  - Mr. Sandman's profile stats (originally a verbatim copy of Super Macho Man's; restored to age 30, weight 270 lbs, record 28-4 — the correct values from the manual and Japanese version)
+  - Mad Clown's weight (390 lbs → 370 lbs, matching the manual)
+  - "SUPER MACHOMAN" → "SUPER MACHO MAN" across every screen in the game
+- **Japanese name-entry character set** always available via L/R cycling (no hidden button combo needed)
+- **CREDITS entry** added to the Records View screen — replays the ending cutscene's credits roll
+- **Cosmetic title-screen tweaks** — Special Circuit ring artwork and palette, plus a "SPECIAL EDITION" sub-title
+- **Special Circuit always unlocks correctly** — the original ROM's security checksum that locks Special on save states / emulators / patched ROMs is bypassed
+
+---
+
 ## Patch files
 
-### [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) — Versus Hack (base)
+### [`spo_special_edition_v1.5.ips`](patches/spo_special_edition_v1.5.ips) — Special Edition (recommended)
 
-The core hack. Adds Versus Mode to the menu and fixes Special Circuit security checksum lock. Apply to the original ROM.
-
-### [`spo_special_edition_v1.4.ips`](patches/spo_special_edition_v1.4.ips) — Special Edition (recommended)
-
-The full experience: `spo_versus_hack.ips` stacked with the standalone patches below. Apply directly to the original ROM — **not** on top of `spo_versus_hack.ips`.
+The full experience: all the standalone patches below bundled into a single IPS. Apply directly to the original ROM.
 
 ### Standalone patches
 
-These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM or `spo_versus_hack.ips`:
+These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.5.ips`.
 
-| File | What it does |
-|---|---|
-| [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. |
-| [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. |
-| [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. |
-| [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. |
-| [`spo_disable_security_checksum.ips`](patches/standalone/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. |
-| [`spo_credits.ips`](patches/standalone/spo_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. |
+| File | What it does | Details |
+|---|---|---|
+| [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
+| [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
+| [`spo_super_macho_man_fix.ips`](patches/standalone/spo_super_macho_man_fix.ips) | Fixes the "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across all screens in the game. | [doc](doc/standalone/SUPER_MACHO_MAN_FIX.md) |
+| [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. | [doc](doc/standalone/JP_CHARSET_ENABLED.md) |
+| [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_RING.md) |
+| [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_LOGO.md) |
+| [`spo_disable_security_checksum.ips`](patches/standalone/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. | [doc](doc/standalone/DISABLE_SECURITY_CHECKSUM.md) |
+| [`spo_credits.ips`](patches/standalone/spo_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. | [doc](doc/standalone/CREDITS.md) |
 
 ### Incomplete / experimental patches
 
@@ -79,9 +92,13 @@ In Versus matches, **Controller 2 controls the opponent**. This is the same mech
 
 The opponent-select screen shows **"VERSUS MODE"** as its header and **"< PLAYER 2 SELECT >"** as the prompt when entering from Versus. Time Attack is completely unaffected — it still shows "TIME ATTACK MODE" and "< OPPONENT SELECT >".
 
-### 4. Special Circuit always unlockable
+### 4. Player 2 picks their own fighter
 
-The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators, or patched ROMs. This patch disables that checksum check.
+On the VERSUS opponent-select screen, **Controller 2's D-pad, A, and Start mirror Controller 1's** — so Player 2 can pick their own character without handing the controller back.
+
+### 5. Special Circuit security checksum disabled
+
+The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators, or patched ROMs. This patch disables that checksum check so the Special Circuit is always accessible.
 
 ---
 
@@ -89,7 +106,7 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 1. From the title screen, choose **NEW GAME** or **CONTINUE**.
 2. At the **Mode Select** screen, choose **VERSUS MODE**.
-3. Select your circuit and opponent (Controller 1 still controls the menu interactions).
+3. Select your circuit and opponent. Either controller can drive the opponent-select screen — Player 2 can navigate and confirm their own character.
 4. Once the match starts, **Controller 1 controls the left boxer** and **Controller 2 controls the right boxer**.
 
 ---
@@ -106,7 +123,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining:** 957 bytes free in bank $0D plus 4 bytes free at the end of bank $01 (`$01:FFE0–$FFE3`) after applying the complete Special Edition patch — **961 bytes** total.
+- **Free space remaining:** 629 bytes free in bank $0D plus 4 bytes free at the end of bank $01 (`$01:FFE0–$FFE3`) after applying the complete Special Edition patch — **633 bytes** total.
 
 ---
 
