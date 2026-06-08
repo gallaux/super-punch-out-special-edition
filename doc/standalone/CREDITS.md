@@ -9,15 +9,26 @@ The Records View select screen originally has three entries: BEST TIME, BEST SCO
 - Adds a fourth entry **CREDITS** at row 22.
 - Tightens the layout so the four entries sit at rows 10/14/18/22 with the header at row 2 (matching the Championship circuit-select layout).
 - Hooks the A-button confirm dispatch so selecting CREDITS launches the ending credits cutscene (`JML $00:B29C`).
+- **Fixes a no-record artifact** (see below) so the credits roll looks correct even when launched before all opponents have been beaten.
+
+## No-record artifact fix
+
+When the credits roll is launched before all 16 opponents have been beaten, fighters with no saved record would display a garbage Japanese glyph in the `YOUR BEST` time slot instead of a valid time. This is a cosmetic artifact only.
+
+**Root cause:** The credits animation engine in bank `$01` runs a per-frame state machine (`CODE_01DAC4`) that reads each fighter's time digits from SRAM via `CODE_01D52B`. `CODE_01D52B` reads 5 SRAM bytes at fighter index × 5 and writes them as digit tiles to `$7E40B0`–`$7E40BE` (BG3 tilemap, DMA'd to VRAM `$7000`+ each frame). For an unbeaten fighter those SRAM bytes are uninitialized (`$FF`), and tile `$FF` in the credits font is a Japanese glyph. In the original game this path is only reached after World Circuit completion (all fighters beaten), so it was never a problem.
+
+**Fix:** a 3-byte hook at `$01:DB27` (file `0x0DB27`) redirects `JSR CODE_01D52B` to a stub at `$01:FEC2` (file `0x0FEC2`). The stub calls `CODE_01D52B` normally, then checks whether `$7E40B0` is `$FF` and replaces it with `$03` (tile "3") if so. Tile `$03` is the value Nintendo's own no-record path writes at `CODE_01DAC4` — the leading digit of the hardcoded placeholder time `3'00"00`, which is the duration of a full round.
 
 ## Patch records
 
-10 records, 119 bytes total (plus the SNES header checksum):
+12 records, 137 bytes total (plus the SNES header checksum):
 
 | File offset | Bytes | Effect |
 |---|---|---|
 | `0x0BFA6`, `0x0BFAB`, `0x0BFDB`, `0x0BFE9`, `0x0BFF2`, `0x0BFF5`, `0x0C022` | 1-2 | Init-routine bytes: highlight bar base, palette-cycle bases, arrow positions, cursor sprite anchor — all shifted in lockstep to move the layout from rows 12/16/20/24 → rows 10/14/18/22 |
 | `0x0C9CA` | 4 | Replace start of confirm dispatcher `CODE_01C9CA` with `JML $0D:FB39` (per-fighter dispatch stub) |
+| `0x0DB27` | 3 | Hook: `JSR CODE_01D52B` → `JSR $FEC2` (no-record artifact fix) |
+| `0x0FEC2` | 18 | Stub: call `CODE_01D52B`, check `$7E40B0 == $FF`, overwrite with `$03` if so |
 | `0x6A3EC` | 2 | DA3DA[`$12`] redirect to `$0D:FB0C` (new screen descriptor) |
 | `0x6A47A` | 2 | DA332[`$A4`] redirect to `$0D:FB31` (CREDITS tile string) |
 | `0x6AE62`, `0x6AE66`, `0x6AE6A` | 1 each | Header descriptor row shifts (RECORDS / VIEW / MODE) |
@@ -27,7 +38,8 @@ The Records View select screen originally has three entries: BEST TIME, BEST SCO
 
 ## Free space consumed
 
-- **Bank `$0D`**: 86 bytes at `$0D:FB0C-$0D:FB61` (descriptor + tile string + dispatch stub)
+- **Bank `$0D`**: 86 bytes at `$0D:FB0C–$0D:FB61` (descriptor + tile string + dispatch stub)
+- **Bank `$01`**: 18 bytes at `$01:FEC2–$01:FED3` (no-record artifact fix stub)
 
 ## Compatibility
 

@@ -208,7 +208,7 @@ Called from `CODE_01BD0D` (file `0x0BD0F`), which originally called `JSR $D1FC` 
 
 **Critical note:** PLA on SNES updates the N and Z processor flags from the pulled value — not from the preceding CMP. The BEQ must come before PLA, or it always sees Z=0 (since the pulled value `$0C`/`$0E` is always nonzero). The BEQ is correctly placed before PLA for this reason.
 
-This stub sits in the dead-loop jump-table slots at `$8018`/`$801B`/`$801E` (self-referencing JMP dead loops, never called) plus 9 bytes of confirmed free space at `$8021–$8029`. Bank `$01` has zero confirmed-free bytes remaining after this stub.
+This stub sits in the dead-loop jump-table slots at `$8018`/`$801B`/`$801E` (self-referencing JMP dead loops, never called) plus 9 bytes of confirmed free space at `$8021–$8029`.
 
 ---
 
@@ -613,7 +613,7 @@ row_loop:
 
 Inlines `CODE_01D7BC`'s body (DMA list setup at `$0387` — needed every char-switch in both modes), then conditionally blanks BG3 only when `$0607 == $03`. BG1 doesn't need re-blanking because the char-switch render path doesn't touch it. The `LDA.l $01:D7D2,x` long-indexed read accesses the bank-$01 lookup table directly, avoiding the need for a bank-$01 trampoline.
 
-**Why the cross-bank inlining:** `CODE_01BE9B` runs in bank `$01`, and the natural fix would be a bank-$01 trampoline that does `JSR $D7BC` + blank + `JMP $BECE`. But bank `$01` has zero confirmed-free bytes. Inlining `D7BC`'s 14 bytes inside our bank-$0D stub avoids needing any bank-$01 space.
+**Why the cross-bank inlining:** `CODE_01BE9B` runs in bank `$01`, and the natural fix would be a bank-$01 trampoline that does `JSR $D7BC` + blank + `JMP $BECE`. But at the time records [27]–[30] were written, bank `$01` had zero confirmed-free bytes — the credits no-record fix stub at `$01:FEC2` had not yet been added. Inlining `D7BC`'s 14 bytes inside our bank-$0D stub avoids needing any bank-$01 space.
 
 ---
 
@@ -973,6 +973,8 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 **What it does:** Adds a fourth `CREDITS` entry to the **Records View select screen** (the screen that asks which circuit's records to view) and tightens the layout so the four entries sit at rows 10/14/18/22 with the header at row 2 — matching the Championship circuit-select layout. Selecting `CREDITS` launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset; that is the original cutscene's terminal behavior, not introduced by this patch.
 
+Also folds in a **no-record artifact fix**: when the credits roll launches before all 16 opponents are beaten, fighters with no record would display a Japanese glyph tile in the `YOUR BEST` time slot. See the full breakdown below.
+
 **Final on-screen layout:**
 
 | Row | Element | Layer |
@@ -1071,7 +1073,59 @@ AB                 PLB
 5C 4F C9 01        JML $01:C94F     ; $44 ≠ 0 path
 ```
 
-**Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes). Conflicts with `spo_sound_mode_ui_incomplete.ips`, which also uses `$0D:FB0C+` — the two patches cannot be applied together.
+**Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes) and `$01:FEC2–$01:FED3` (18 bytes). Conflicts with `spo_sound_mode_ui_incomplete.ips`, which also uses `$0D:FB0C+` — the two patches cannot be applied together.
+
+**No-record artifact — root cause and fix:**
+
+The credits roll animation engine in bank `$01` runs a per-frame state machine (`CODE_01DA7C`). On each frame, state-index 1 dispatches to `CODE_01DAC4`, which redraws the `YOUR BEST` time tile block for the current fighter onto BG3. The key section:
+
+```asm
+CODE_01DAC4:
+    JSR CODE_01DB4C        ; blank tilemap region
+    ...
+    LDA.w $0608            ; fighter SRAM slot index (signed)
+    BPL CODE_01DB21        ; >= 0: fighter has a record path
+    ; else: no-record hardcoded tile path
+    LDA #$03
+    STA.l $7E40B0          ; hardcoded tile for the leading slot
+    ...
+    BRA CODE_01DB2A
+
+CODE_01DB21:               ; "has record" path
+    LDX #$40B0
+    STX $00DA              ; destination base = $7E40B0
+    JSR CODE_01D52B        ; read SRAM, write digit tiles to $7E40B0+
+```
+
+`CODE_01D52B` computes a fighter-specific SRAM offset (`$0600` × 5), reads 5 consecutive bytes from SRAM bank `$70`, and writes them as digit tiles to `$7E40B0` onward:
+
+```asm
+CODE_01D558:
+    ...
+    LDA.l $700006,x        ; SRAM byte at offset+6 → $7E40B0
+    LDX $00DA
+    STA.l $7E0000,x        ; = STA.l $7E40B0  ← artifact slot
+```
+
+`$7E40B0` is in BG3's per-frame tilemap buffer; a per-frame DMA copies `$7E4000–$7E47FF` to VRAM `$7000`. VRAM `$7058` = WRAM `$7E40B0` (offset `$B0` / 2 = word `$58`). The credits font maps tile `$FF` to a Japanese glyph.
+
+**Why the BPL is always taken via our menu path:** `$0608` is initialized to `$00` by `CODE_00913B` (called during credits init at `CODE_00B2A3`) and is never updated per-fighter when launching via our `JML $00:B29C` path. `$0608 = 0` (non-negative) means BPL is always taken — so `CODE_01D52B` runs for every fighter, including unbeaten ones whose SRAM is uninitialized (`$FF`).
+
+**Fix:** replace the 3-byte `JSR CODE_01D52B` at `$01:DB27` (file `0x0DB27`) with `JSR $FEC2`. The 18-byte stub at `$01:FEC2` (file `0x0FEC2`, in the 206-byte garbage zone `UNK_01FEC2`):
+
+```asm
+20 2B D5        JSR CODE_01D52B   ; call original — writes SRAM data to $7E40B0
+AF B0 40 7E     LDA.l $7E40B0     ; read the written tile
+C9 FF           CMP #$FF          ; is it the bad glyph?
+D0 06           BNE +6            ; no: leave it, go to RTS
+A9 03           LDA #$03          ; yes: tile $03 = digit "3" - Nintendo's own no-record placeholder, leading digit of 3'00"00 (full round duration)
+8F B0 40 7E     STA.l $7E40B0     ; overwrite
+60              RTS               ; return to CODE_01DB2A epilog
+```
+
+Uses `LDA.l` / `STA.l` (24-bit addressing) so DBR is irrelevant. The check fires once per fighter per frame but the condition is only true for unbeaten fighters — beaten fighters' SRAM holds valid digit tiles (`$00`–`$09`), never `$FF`.
+
+**Why `$01:FEC2`:** the 206-byte block at `$01:FEC2–$01:FF8F` is labeled `UNK_01FEC2` in the disassembly (a copy of `$00:FEC2`, never executed at runtime — confirmed by ROM-wide JSR/JMP/BRA search). It is the largest free zone in bank `$01` and sits entirely before the interrupt-vector table at `$01:FF90`.
 
 ### [`spo_title_screen_special_logo.ips`](../patches/standalone/spo_title_screen_special_logo.ips)
 
@@ -1186,6 +1240,7 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 | `0x8463–0x8468` | 6 B | Back-out clear stub |
 | `0x841F–0x842A` | 12 B | **NOT SAFE** — null entries in `DATA_01840B` (AI opcode table, opcodes `$14–$1E`) |
 | `0x875F–0x8766` | 8 B | **NOT SAFE** — `$FF` fill inside `DATA_01872F` (128-byte game data table) |
+| `0xFEC2–0xFED3` | 18 B | Consumed by `spo_credits.ips` no-record artifact fix stub |
 | `0xFFB0–0xFFDF` | 48 B | Consumed by dispatch stub + trampolines + handlers |
 | `0xFFE0–0xFFE3` | 4 B | **Free** |
 
@@ -1322,6 +1377,8 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FC91` | `0x6FC91` | P2-mirrors-P1 merge + poll stub (JSL from `$01:BECE`) |
 | `$0D:FD87` | `0x6FD87` | Per-fighter portrait X-shift stub (JSL from `$08:D2AB`) |
 | `$0D:FD99` | `0x6FD99` | Mode-flag rewrite stub (JSL from `$00:B1D9`) |
+| `$01:DB27` | `0x0DB27` | Credits no-record fix hook: `JSR $D52B` → `JSR $FEC2` (`spo_credits.ips`) |
+| `$01:FEC2` | `0x0FEC2` | Credits no-record fix stub: call `CODE_01D52B`, clamp `$7E40B0` (`spo_credits.ips`) |
 | `$01:D8F7` | `0xD8F7` | Original menu-button poller (button-code in A; record [34] inlines a copy) |
 | `$08:D162` | `0x45162` | Pre-fight profile screen renderer |
 | `$08:D4AF` | `0x454AF` | BEST TIME / PR boss-name banner renderer |
