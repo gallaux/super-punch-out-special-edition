@@ -14,7 +14,7 @@ Adds a runtime glove-color selector to the player's gloves. By default each circ
 - **X** → yellow
 - **Y** → force vanilla green (override even on a colored-default opponent)
 
-Override applies only to the current match. The next fight reseeds from the opponent's default. All glove states render in the chosen mode's hue — rest, the powered-up cycling animation, the knock-out-punch / rapid-punch frames, the portrait HUD (rest + both powered-up frames), and the BG-tile renders for the victory pose / knockdown / get-up animations.
+Override applies only to the current match. The next fight reseeds from the opponent's default. All glove states render in the chosen mode's hue — rest, the powered-up cycling animation, the knock-out-punch / rapid-punch frames, the portrait HUD (rest + both powered-up frames), the BG-tile renders for the victory pose / knockdown / get-up animations, and the player sprite on the ending credits screen.
 
 The "powered up" and "knock-out punch" terms come from the in-game training demo. Internal code symbols (`BLINK_*`, `SUPERARM_*`) keep their historical names; the prose uses the in-game terminology.
 
@@ -53,6 +53,7 @@ The player's glove animations span two rendering systems — sprites (most state
 | Knock-out-punch / rapid punches | sprite OAM palette 3 c12-c15 | `$7E:0578-$057F` | DDAA hook replaces the hardcoded immediates with a per-mode lookup; Hook 1 also pre-writes the chosen color into `$0578-$057F` (MVN 3) so the engine's snapshot/restore preserves it across attacks |
 | Portrait HUD (rest + both powered-up frames) | sprite OAM palette 1 c12-c13 | `$7E:0538/$053A` | EC6E hooks at all 4 call sites detect frame and apply per-mode portrait color |
 | Victory pose / knockdown / get-up | BG layer 1 with BG palette 2 c12-c15 | `$7E:0458-$045F` | Hook 1 trampoline writes per-mode rest colors here at fight init (MVN 2) |
+| Ending credits screen (final stats / "THE END") | sprite OAM palette 4 c12-c15 | `$7E:0580-$058F` | Static ROM patch: `DATA_008547` (ColorEndScreen.bin) palette 4 c12-c15 at file `0x05DF` — vanilla green replaced with yellow (mode 3) |
 
 ### Hook layout
 
@@ -81,13 +82,14 @@ Hook 1's three MVNs each set DBR to the destination bank (`$7E`). The trampoline
 
 ## Patch records
 
-16 records, ~573 bytes total (plus the SNES header checksum):
+17 records, ~581 bytes total (plus the SNES header checksum):
 
 | File offset | Bytes | Effect |
 |---|---|---|
 | `0x017E5` | 6 | Hook 1: `JSL $0D:FDD2 + 2×NOP` (was `LDX #$0000; LDY #$3EE0`) |
 | `0x05D43` | 5 | Powered-up hook: `JSL $0D:FE80 + RTS` |
 | `0x05DAA` | 5 | Knock-out-punch hook: `JSL $0D:FEC0 + RTS` |
+| `0x05DF` | 8 | Ending credits screen: `DATA_008547` palette 4 c12-c15 → yellow (mode 3) (static, no code) |
 | `0x06B1F`, `0x06B9B`, `0x06C68` | 5 each | Portrait sep-variant hooks: `JSL $0D:FF68 + NOP` |
 | `0x06C64` | 2 | NOP out the `BEQ +5` that targets inside our 5-byte EC68 hook |
 | `0x06CE9` | 4 | Portrait rts-variant hook: `JSL $00:F5D5` |
@@ -419,9 +421,13 @@ org $0DFFAB
     db $92,$73, $D4,$7B         ; blue
     db $3E,$25, $7F,$2D         ; red
     db $FF,$2B, $FF,$33         ; yellow
+; Ending credits screen — static palette patch, no code needed.
+; DATA_008547 (ColorEndScreen.bin) palette 4 c12-c15 is the player sprite
+; palette on the final stats / "THE END" screen after the credits roll.
+; Vanilla green replaced with yellow (mode 3) to match the in-fight color.
+org $008547 + 4*32 + 24   ; = file $05DF (SNES $00:85DF)
+    db $CA,$00, $F8,$05, $DD,$12, $BF,$23   ; yellow c12-c15
 ```
-
-(Plus the standard 4-byte SNES header checksum update at file `0x7FDC`.)
 
 ## Compatibility
 

@@ -13,7 +13,7 @@
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_005" src="https://github.com/user-attachments/assets/01d79c97-2847-481e-bd9b-c9563f87dd55" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_006" src="https://github.com/user-attachments/assets/018cabe6-a0c2-4446-978e-6d45ed95af7b" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_007" src="https://github.com/user-attachments/assets/7df047bd-4246-4d27-b960-3dd721e94d85" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_008" src="https://github.com/user-attachments/assets/176f3744-5709-44dc-a071-429c87b88828" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_008" src="https://github.com/user-attachments/assets/25c4f5ad-a370-4fcb-8f48-7fdcc08e0615" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_009" src="https://github.com/user-attachments/assets/091938c6-af05-47b2-9419-089a988e32f8" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_010" src="https://github.com/user-attachments/assets/e15bbe5a-7198-4bd3-b4d2-f7daabd249a1" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_011" src="https://github.com/user-attachments/assets/f183750a-60e4-46ab-9976-93d8e9635875" />
@@ -64,7 +64,7 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 | File | What it does | Details |
 |---|---|---|
 | [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
-| [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a runtime glove-color selector. Each circuit gets a different default glove color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y at fight start. All player glove animation states (rest, powered-up, knock-out punches, portrait HUD, victory pose) render in the chosen color. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
+| [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a per-circuit glove-color selector. Each circuit gets a different default color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y at fight start. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
 | [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
 | [`spo_super_macho_man_fix.ips`](patches/standalone/spo_super_macho_man_fix.ips) | Fixes the "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across all screens in the game. | [doc](doc/standalone/SUPER_MACHO_MAN_FIX.md) |
 | [`spo_how_to_typo_fix.ips`](patches/standalone/spo_how_to_typo_fix.ips) | Fixes a single-letter typo in the in-game tutorial demo: "devestating" → "devastating". | [doc](doc/standalone/HOW_TO_TYPO_FIX.md) |

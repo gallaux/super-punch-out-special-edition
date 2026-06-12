@@ -805,7 +805,7 @@ Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [ALT_GLOVE_COL
 
 ### [`spo_alt_glove_colors.ips`](../patches/standalone/spo_alt_glove_colors.ips)
 
-**What it does:** Adds a runtime glove-color selector. Each opponent has a circuit-default color (Minor=vanilla green, Major=blue, World=red, Special=yellow, mirroring the per-circuit glove tones in Punch-Out!! Wii); the player can override via L/R/X/Y held during the pre-fight transition. The override applies only to the current match — the next fight reseeds from the opponent default. All player-glove animation states render in the chosen mode's hue: rest, the powered-up cycling animation, the knock-out-punch / rapid-punch frames, the portrait HUD (rest + both powered-up frames), and the BG-tile renders for the victory pose / knockdown / get-up animations.
+**What it does:** Adds a runtime glove-color selector. Each opponent has a circuit-default color (Minor=vanilla green, Major=blue, World=red, Special=yellow, mirroring the per-circuit glove tones in Punch-Out!! Wii); the player can override via L/R/X/Y held during the pre-fight transition. The override applies only to the current match — the next fight reseeds from the opponent default. All player-glove animation states render in the chosen mode's hue: rest, the powered-up cycling animation, the knock-out-punch / rapid-punch frames, the portrait HUD (rest + both powered-up frames), the BG-tile renders for the victory pose / knockdown / get-up animations, and the player sprite on the ending credits screen.
 
 The full byte-level breakdown (hook sites, stub assembly, color tables) lives in the standalone doc [doc/standalone/ALT_GLOVE_COLORS.md](standalone/ALT_GLOVE_COLORS.md). This section covers the deeper technical context: *why* this is a runtime patch instead of a ROM-data patch, the glove animation state machine, and the cross-bank-RTS trap the portrait hooks had to navigate.
 
@@ -820,6 +820,7 @@ The full byte-level breakdown (hook sites, stub assembly, color tables) lives in
 | Knock-out-punch / rapid-punch | sprite OAM palette 3 c12-c15 | `$7E:0578-$057F` | `CODE_00DDAA` writer hooked for per-mode lookup; Hook 1 also pre-writes the chosen color into `$0578-$057F` (MVN 3) so the engine's snapshot/restore preserves it across attacks |
 | Portrait HUD (rest + 2 powered-up frames) | sprite OAM palette 1 c12-c13 | `$7E:0538/$053A` | `CODE_00EC6E` is called from 4 sites; each is hooked, and the stubs frame-detect via the c12 word the engine just wrote |
 | Victory pose / knockdown / get-up | BG layer 1 with BG palette 2 c12-c15 | `$7E:0458-$045F` | written by Hook 1 trampoline at fight init (MVN 2) |
+| Ending credits screen (final stats / "THE END") | sprite OAM palette 4 c12-c15 | `$7E:0580-$058F` | Static ROM patch at file `0x05DF` (`DATA_008547` palette 4 c12-c15) — no runtime hook needed |
 
 **The contender DMA + knock-out-punch snapshot/restore interaction:** at fight init, a DMA at `$00:97DF` copies `Layer1_Contender.bin` bytes into WRAM `$0540-$057F`. Bytes 56-63 of that file are vanilla glove green and land at `$0578-$057F` (sprite OAM palette 3 c12-c15). The engine's knock-out-punch state uses a snapshot/restore mechanism (`CODE_00DE01` snapshots `$0578-$057E` to DP `$22-$28` before attack frames; `CODE_00DDCC` restores after). Without intervention the snapshot captures vanilla green, the DDAA hook briefly writes our per-mode color during the attack, then the restore puts vanilla green back over our color — a visible green flash right after every knock-out-punch.
 
@@ -846,8 +847,9 @@ Then `table_offset = frame_offset + (mode-1)*4` indexes into the 36-byte portrai
 **Mode flag at WRAM `$7E:1FE0`:** placed in high low-RAM rather than direct-page low-RAM because the fight engine clobbers `$00A8` and adjacent low-RAM addresses during gameplay via direct-page accesses (DP=`$0000` collides with absolute `$00A8`). `$7E:1FE0` is untouched by direct-page activity in the fight loop. Reseeded by Hook 1 every fight init — there is no persistent state across matches, so no back-out clear hook is needed.
 
 **Free space consumed:**
-- Bank `$0D`: 459 bytes used within `$0D:FDAA-$0D:FFCE` (opp_table + rest_table + Hook 1 trampoline + powered-up stub + knock-out-punch stub + powered-up table + knock-out-punch table + portrait sep stub + portrait color table; with ~90 B of small unused gaps between sub-regions). Inside the disassembly's `%InsertGarbageData($0DFA69, ...)` zone.
-- Bank `$00`: 74 bytes at `$00:F5D0-$00:F619` (EC6E trampoline + portrait stub-rts). Inside the disassembly's `UNK_00F5D0` `%InsertGarbageData` zone.
+- Bank `$0D`: 459 bytes used within `$0D:FDAA-$0D:FFCE`. Inside the disassembly's `%InsertGarbageData($0DFA69, ...)` zone.
+- Bank `$00`: 74 bytes at `$00:F5D0-$00:F619`. Inside the disassembly's `UNK_00F5D0` `%InsertGarbageData` zone.
+- File `0x05DF` (SNES `$00:85DF`): 8 bytes — `DATA_008547` (ColorEndScreen.bin) palette 4 c12-c15. In-place edit, no free space consumed.
 
 For the full asm overlay and per-mode color tables, see [doc/standalone/ALT_GLOVE_COLORS.md](standalone/ALT_GLOVE_COLORS.md).
 
@@ -1560,6 +1562,7 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FF00` | `0x6FF00` | Powered-up color table — 4 modes × 8 B (`spo_alt_glove_colors.ips`) |
 | `$0D:FF40` | `0x6FF40` | Knock-out-punch color table — 4 modes × 8 B (`spo_alt_glove_colors.ips`) |
 | `$0D:FFAB` | `0x6FFAB` | Portrait color table — 3 modes × 3 frames × 4 B (`spo_alt_glove_colors.ips`) |
+| `$00:8547` | `0x00547` | `DATA_008547` (ColorEndScreen.bin) — 288-byte ending palette block; palette 4 c12-c15 at `0x05DF` patched by `spo_alt_glove_colors.ips` |
 | `$0D:FFE4` | `0x6FFE4` | Interrupt vectors — untouchable |
 | `$08:BB3D` | `0x43B3D` | Per-fighter banner pointer table (16 entries × 2 bytes) |
 | `$08:D926` | `0x45926` | Per-fighter banner entry for Macho Man (`spo_super_macho_man_fix.ips`) |
