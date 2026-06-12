@@ -20,10 +20,31 @@ The original US/EUR ROM has a hidden mode where L/R cycles between three charact
 
 None. All three records are in-place edits.
 
+## Patch in asm form
+
+```asm
+; spo_jp_charset_enabled
+; Makes the Japanese character set L/R-cycling always active in name entry,
+; opening on the Western set by default. Three single-byte tweaks.
+
+org $01DF83
+    BRA +$0B        ; was: BEQ +$0B — always take the JP-mode-enabled branch
+
+org $01DF92
+    db $B7          ; was: $9C — redirect JSR from $D79C to $D7B7
+                    ; $D7B7 loads full Western UI tiles (avoids corrupted tilemap
+                    ; on US ROM where Japanese-set tiles aren't pre-loaded)
+
+org $01DF95
+    db $02          ; was: $00 — initial charset index = 2 (Western), matching $D7B7
+```
+
+(Plus the standard 4-byte SNES header checksum update at file `0x7FDC`.)
+
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.5.ips`
+- **Bundled into**: `spo_special_edition_v1.6.ips`
 - **Conflicts with**: nothing in this repo
 - **Cheat-code compatibility**: unaffected
 

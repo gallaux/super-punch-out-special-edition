@@ -20,10 +20,23 @@ This patch forces the check's result to `0` (unlocked) regardless of the SRAM co
 
 None. Single in-place edit.
 
+## Patch in asm form
+
+```asm
+; spo_disable_security_checksum
+; Forces the World Circuit completion checksum result to 0 (unlocked)
+; regardless of SRAM contents, so Special Circuit unlocks on every setup.
+
+org $00BC23
+    LDA #$00        ; was: ORA $D5 — force A=0 before the SRAM-write store
+```
+
+(Plus the standard 4-byte SNES header checksum update at file `0x7FDC`.)
+
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.5.ips` (this fix is also included as record [1] of `spo_versus_hack.ips`)
+- **Bundled into**: `spo_special_edition_v1.6.ips` (this fix is also included as record [1] of `spo_versus_hack.ips`)
 - **Conflicts with**: `spo_versus_hack.ips` writes the same value to the same byte — applying both is a harmless no-op double-write.
 - **Cheat-code compatibility**: unaffected
 

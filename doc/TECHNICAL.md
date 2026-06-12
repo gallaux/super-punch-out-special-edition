@@ -2,10 +2,10 @@
 
 This document covers the full reverse-engineering and implementation details behind the patches described in [README.md](../README.md). It is intended for ROM hackers, the technically curious, and anyone who wants to continue this work.
 
-The recommended distribution is the bundled [`spo_special_edition_v1.5.ips`](../patches/spo_special_edition_v1.5.ips), which stacks every patch in this repo.
-The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (profile stat fixes, Super Macho Man typo fix, JP charset, title-screen tweaks, credits entry) layers on top as standalone patches.
+The recommended distribution is the bundled [`spo_special_edition_v1.6.ips`](../patches/spo_special_edition_v1.6.ips), which stacks every patch in this repo.
+The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (profile stat fixes, Super Macho Man typo fix, tutorial-demo typo fix, JP charset, title-screen tweaks, credits entry) layers on top as standalone patches.
 
-**Compatibility guarantee:** all 8 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.5.ips`. The only overlap between any two standalones is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write.
+**Compatibility guarantee:** all 9 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`. The only overlap between any two standalones is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write.
 
 ---
 
@@ -797,6 +797,10 @@ C9 09            CMP #$09         ; restore caller's flag-set
 
 ## 6. Standalone patches — technical detail
 
+Each standalone patch has a companion doc in `doc/standalone/` that includes the patch records, byte-for-byte effect descriptions, free-space inventory, compatibility notes, and a **patch in asm form** section with the full assembler overlay. This section documents the deeper technical context (rationale, data-structure background, layout reasoning, etc.); the standalone docs are the right place for machine-readable asm.
+
+Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md) · [CREDITS](standalone/CREDITS.md)
+
 ### [`spo_profile_stats_fix.ips`](../patches/standalone/spo_profile_stats_fix.ips)
 
 **What it does:** Corrects Mr. Sandman's profile screen (wrong stats copied from Super Macho Man) and Mad Clown's profile screen (weight listed as 390 lbs instead of 370 lbs).
@@ -822,6 +826,27 @@ New: 13 10 0A 12 17 0A 12 18 F4 14   ("30", "27", "28-4" — correct JP values)
 ```
 Old: 19   (digit "9" → 390 lbs)
 New: 17   (digit "7" → 370 lbs)
+```
+
+---
+
+### [`spo_how_to_typo_fix.ips`](../patches/standalone/spo_how_to_typo_fix.ips)
+
+**What it does:** Fixes a single-letter typo in the in-game tutorial demo (the HOW-TO-PLAY attract sequence). The UPPERCUT lesson string in the original ROM reads *"Knock Out Punches can be highly **devestating**!"* — corrected to **devastating**.
+
+**Data location:** the tutorial demo's text strings live in `DATA_08B83E` (SNES `$08:B83E`, file `0x4383E`) and use a custom run-length-style font encoding where each byte after a `$8X` length prefix is a single character tile index. The relevant 12-character segment encodes `devestating!`:
+
+```
+8C 1C 0A 3C 0A 24 08 10 08 1E 06 20 16
+   d  e  v  e  s  t  a  t  i  n  g  !
+```
+
+`$8C` is the run length (12 chars); the bytes that follow are the per-character tile indices. In this encoding `e = $0A` and `a = $10`. The fix patches the 4th character byte from `$0A` (`e`) to `$10` (`a`).
+
+**Patch record:** 1 byte at file `0x43876`:
+```
+Old: 0A   ('e')
+New: 10   ('a')
 ```
 
 ---
@@ -1274,7 +1299,7 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FDAA–0x6FFE3` | 570 B | **Free** |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
 
-**Free space totals after Special Edition v1.5:** 29 + 8 + 2 + 20 + 570 = **629 bytes** in bank `$0D`, plus 4 bytes in bank `$01` at `$FFE0–$FFE3`. Total free space: **633 bytes**.
+**Free space totals after Special Edition v1.6:** 29 + 8 + 2 + 20 + 570 = **629 bytes** in bank `$0D`, plus 4 bytes in bank `$01` at `$FFE0–$FFE3`. Total free space: **633 bytes**.
 
 `spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime.
 

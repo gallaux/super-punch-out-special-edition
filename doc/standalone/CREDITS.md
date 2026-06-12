@@ -41,10 +41,157 @@ When the credits roll is launched before all 16 opponents have been beaten, figh
 - **Bank `$0D`**: 86 bytes at `$0D:FB0C–$0D:FB61` (descriptor + tile string + dispatch stub)
 - **Bank `$01`**: 18 bytes at `$01:FEC2–$01:FED3` (no-record artifact fix stub)
 
+## Patch in asm form
+
+```asm
+; spo_credits
+; Adds a CREDITS entry to the Records View select screen and fixes the
+; no-record artifact (garbage glyph for unbeaten fighters in the credits roll).
+
+;==============================================================================
+; Layout adjustments (Records View select screen init, file 0x0BFA2)
+; All shifted in lockstep to move entries from rows 12/16/20 → rows 10/14/18/22.
+;==============================================================================
+
+org $01BFA6
+    db $03          ; item count (4 items, 0-indexed), was $02 (3 items)
+
+org $01BFAB
+    dw $0290        ; highlight bar base (row 10), was $0310 (row 12)
+
+org $01BFDB
+    dw $5994        ; CBA8 palette-cycle base (subheader row 6), was $5A14 (row 8)
+
+org $01BFE9
+    db $8E          ; CB57 header X arg → row 2, was $CE (row 3)
+
+org $01BFF2
+    dw $0190        ; arrow renderer X ($01:D70C) — '<' bracket row 6, was $0210 (row 8)
+
+org $01BFF5
+    dw $01AE        ; arrow renderer Y ($01:D70C) — '>' bracket row 6, was $022E (row 8)
+
+org $01C022
+    db $4F          ; cursor sprite anchor Y — scan starts at row 10, was $5F (row 12)
+
+;==============================================================================
+; A-button confirm dispatch: redirect CODE_01C9CA → stub in bank $0D
+;==============================================================================
+
+org $01C9CA
+    JML $0DFB39     ; bypass original 3-way dispatch
+
+;==============================================================================
+; Screen descriptor pointer: DA3DA[$12] → new 9-record layout at $0D:FB0C
+;==============================================================================
+
+org $0DA3EC
+    dw $FB0C        ; was: $AE3F (original 3-item Records View layout)
+
+;==============================================================================
+; Tile string pointer: DA332[$A4] → "CREDITS" tile data at $0D:FB31
+; (DA332[$A4] originally pointed to garbage — repurposed)
+;==============================================================================
+
+org $0DA47A
+    dw $FB31        ; was: stale garbage pointer
+
+;==============================================================================
+; Header descriptor (text-index $14, RECORDS VIEW MODE row): shift to row 2
+;==============================================================================
+
+org $0DAE62
+    db $8E          ; RECORDS WRAM-lo → $508E (row 2 col 7), was $CE (row 3 col 7)
+
+org $0DAE66
+    db $9E          ; VIEW WRAM-lo    → $509E (row 2 col 15), was $DE
+
+org $0DAE6A
+    db $AC          ; MODE WRAM-lo    → $50AC (row 2 col 22), was $EC
+
+;==============================================================================
+; New screen descriptor at $0D:FB0C (37 bytes, 9 records + terminator)
+; Format: [text_idx][attr][WRAM_lo][WRAM_hi] — attr $34=selectable, $1C=selectable,
+;          $20=always-visible, $0C=always-visible-Layer2
+;==============================================================================
+
+org $0DFB0C
+    db $1A,$20,$94,$59   ; ITEM      Layer 2 row 6  col 10  ($5994)
+    db $05,$20,$9C,$59   ;  SELECT   Layer 2 row 6  col 14  ($599C)
+    db $1B,$34,$96,$52   ; BEST      Layer 1 row 10 col 11  ($5296)
+    db $0F,$34,$A0,$52   ; TIME      Layer 1 row 10 col 16  ($52A0)
+    db $1B,$1C,$96,$53   ; BEST      Layer 1 row 14 col 11  ($5396)
+    db $1D,$1C,$A0,$53   ; SCORE     Layer 1 row 14 col 16  ($53A0)
+    db $1C,$34,$90,$54   ; PERSONAL  Layer 1 row 18 col 8   ($5490)
+    db $10,$34,$A2,$54   ; RECORDS   Layer 1 row 18 col 17  ($54A2)
+    db $A4,$1C,$98,$55   ; CREDITS   Layer 1 row 22 col 12  ($5598)
+    db $00               ; terminator
+
+;==============================================================================
+; "CREDITS" tile string at $0D:FB31
+; Format: [length][tile_bytes] — tile encoding: A=$0A … Z=$23
+;==============================================================================
+
+org $0DFB31
+    db $07, $0C,$1B,$0E,$0D,$12,$1D,$1C
+    ;       C   R   E   D   I   T   S
+
+;==============================================================================
+; A-button dispatch stub at $0D:FB39 (41 bytes)
+; Handles 4 cursor indices: 0=BEST TIME, 1=BEST SCORE, 2=PERSONAL RECORDS,
+; 3=CREDITS. Also preserves the original $44≠0 short-circuit path.
+;==============================================================================
+
+org $0DFB39
+    LDA $44
+    BNE @44path         ; $44 ≠ 0 → skip to C94F path
+    LDA $07E6           ; cursor index
+    BEQ @idx0
+    CMP #$01
+    BEQ @idx1
+    CMP #$03
+    BEQ @idx3
+    ; index 2 fall-through (3 INC $05 pairs total)
+    INC $05
+    INC $05
+@idx1:                  ; index 1 enters here (2 INC $05 pairs)
+    INC $05
+    INC $05
+@idx0:                  ; index 0 enters here (1 INC $05 pair)
+    INC $05
+    INC $05
+    STZ $07
+    PLB
+    RTL
+@idx3:
+    JML $00B29C         ; launch ending-cutscene credits roll
+@44path:
+    JML $01C94F         ; $44 ≠ 0 path
+
+;==============================================================================
+; No-record artifact fix: hook JSR CODE_01D52B → JSR $FEC2 stub
+;==============================================================================
+
+org $01DB27
+    JSR $FEC2           ; was: JSR CODE_01D52B
+
+; Stub at $01:FEC2 — call original, then clamp $FF tile to $03
+org $01FEC2
+    JSR $D52B           ; call CODE_01D52B (writes SRAM digit tiles to $7E40B0+)
+    LDA.l $7E40B0       ; read the leading tile
+    CMP #$FF            ; is it the Japanese garbage glyph?
+    BNE +6              ; no: leave it
+    LDA #$03            ; yes: replace with tile $03 ("3" — Nintendo's own
+    STA.l $7E40B0       ;      no-record placeholder, leading digit of 3'00"00)
+    RTS
+```
+
+(Plus the standard 4-byte SNES header checksum update at file `0x7FDC`.)
+
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.5.ips`
+- **Bundled into**: `spo_special_edition_v1.6.ips`
 - **Conflicts with**: `spo_sound_mode_ui_incomplete.ips` (an experimental patch in `patches/incomplete/`) — both want the same `$0D:FB0C+` free-space region. Don't combine.
 - **Cheat-code compatibility**: unaffected
 

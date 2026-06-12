@@ -37,6 +37,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
   - Mr. Sandman's profile stats (originally a verbatim copy of Super Macho Man's; restored to age 30, weight 270 lbs, record 28-4 — the correct values from the manual and Japanese version)
   - Mad Clown's weight (390 lbs → 370 lbs, matching the manual)
   - "SUPER MACHOMAN" → "SUPER MACHO MAN" across every screen in the game
+  - "devestating" → "devastating" in the in-game tutorial demo
 - **Japanese name-entry character set** always available via L/R cycling (no hidden button combo needed)
 - **CREDITS entry** added to the Records View screen — replays the ending cutscene's credits roll
 - **Cosmetic title-screen tweaks** — Special Circuit ring artwork and palette, plus a "SPECIAL EDITION" sub-title
@@ -46,19 +47,20 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ## Patch files
 
-### [`spo_special_edition_v1.5.ips`](patches/spo_special_edition_v1.5.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.6.ips`](patches/spo_special_edition_v1.6.ips) — Special Edition (recommended)
 
 The full experience: all the standalone patches below bundled into a single IPS. Apply directly to the original ROM.
 
 ### Standalone patches
 
-These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.5.ips`.
+These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`.
 
 | File | What it does | Details |
 |---|---|---|
 | [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
 | [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
 | [`spo_super_macho_man_fix.ips`](patches/standalone/spo_super_macho_man_fix.ips) | Fixes the "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across all screens in the game. | [doc](doc/standalone/SUPER_MACHO_MAN_FIX.md) |
+| [`spo_how_to_typo_fix.ips`](patches/standalone/spo_how_to_typo_fix.ips) | Fixes a single-letter typo in the in-game tutorial demo: "devestating" → "devastating". | [doc](doc/standalone/HOW_TO_TYPO_FIX.md) |
 | [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. | [doc](doc/standalone/JP_CHARSET_ENABLED.md) |
 | [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_RING.md) |
 | [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_LOGO.md) |

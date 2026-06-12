@@ -17,10 +17,31 @@ The bank `$0E` header table maps circuit graphics by offset: `+$00` = MainMenu f
 
 None. Both records are in-place edits.
 
+## Patch in asm form
+
+```asm
+; spo_title_screen_special_ring
+; Replaces the title-screen ring logo and background color palette
+; with the Special Circuit variants. Both patches are in CODE_008EE4
+; (the title-screen frame handler).
+; Bank $0E header table: +$00=MainMenu, +$02=Minor, +$04=Major,
+;                        +$06=World, +$08=Special.
+
+org $008F25
+    db $08          ; was: $02 — LDX #$8008 instead of #$8002 → Special ring GFX
+
+org $008F68
+    LDX #$99B6      ; was: LDX DATA_088000+$18 — read Special Circuit palette
+                    ; directly instead of via the pointer table; the table entry
+                    ; (and all in-game Minor Circuit references) stays unchanged
+```
+
+(Plus the standard 4-byte SNES header checksum update at file `0x7FDC`.)
+
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.5.ips`
+- **Bundled into**: `spo_special_edition_v1.6.ips`
 - **Conflicts with**: nothing in this repo
 - **Cheat-code compatibility**: unaffected
 
