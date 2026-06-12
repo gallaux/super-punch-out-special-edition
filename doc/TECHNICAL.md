@@ -2,10 +2,12 @@
 
 This document covers the full reverse-engineering and implementation details behind the patches described in [README.md](../README.md). It is intended for ROM hackers, the technically curious, and anyone who wants to continue this work.
 
-The recommended distribution is the bundled [`spo_special_edition_v1.6.ips`](../patches/spo_special_edition_v1.6.ips), which stacks every patch in this repo.
-The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (profile stat fixes, Super Macho Man typo fix, tutorial-demo typo fix, JP charset, title-screen tweaks, credits entry) layers on top as standalone patches.
+**Reference:** all `CODE_*`, `DATA_*`, `UNK_*` labels and `%InsertGarbageData` regions referenced in this document follow the conventions of [**Yoshifanatic1's Super Punch-Out!! Disassembly**](https://github.com/Yoshifanatic1/Super-Punch-Out-Disassembly), which has been an invaluable reference throughout the development of this hack.
 
-**Compatibility guarantee:** all 9 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`. The only overlap between any two standalones is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write.
+The recommended distribution is the bundled [`spo_special_edition_v1.6.ips`](../patches/spo_special_edition_v1.6.ips), which stacks every patch in this repo.
+The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (alt glove colors, profile stat fixes, Super Macho Man typo fix, tutorial-demo typo fix, title-screen tweaks, JP charset, credits entry) layers on top as standalone patches.
+
+**Compatibility guarantee:** all 10 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`. The only overlap between any two standalones is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write.
 
 ---
 
@@ -799,7 +801,57 @@ C9 09            CMP #$09         ; restore caller's flag-set
 
 Each standalone patch has a companion doc in `doc/standalone/` that includes the patch records, byte-for-byte effect descriptions, free-space inventory, compatibility notes, and a **patch in asm form** section with the full assembler overlay. This section documents the deeper technical context (rationale, data-structure background, layout reasoning, etc.); the standalone docs are the right place for machine-readable asm.
 
-Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md) · [CREDITS](standalone/CREDITS.md)
+Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [ALT_GLOVE_COLORS](standalone/ALT_GLOVE_COLORS.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [CREDITS](standalone/CREDITS.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md)
+
+### [`spo_alt_glove_colors.ips`](../patches/standalone/spo_alt_glove_colors.ips)
+
+**What it does:** Adds a runtime glove-color selector. Each opponent has a circuit-default color (Minor=vanilla green, Major=blue, World=red, Special=yellow, mirroring the per-circuit glove tones in Punch-Out!! Wii); the player can override via L/R/X/Y held during the pre-fight transition. The override applies only to the current match — the next fight reseeds from the opponent default. All player-glove animation states render in the chosen mode's hue: rest, the powered-up cycling animation, the knock-out-punch / rapid-punch frames, the portrait HUD (rest + both powered-up frames), and the BG-tile renders for the victory pose / knockdown / get-up animations.
+
+The full byte-level breakdown (hook sites, stub assembly, color tables) lives in the standalone doc [doc/standalone/ALT_GLOVE_COLORS.md](standalone/ALT_GLOVE_COLORS.md). This section covers the deeper technical context: *why* this is a runtime patch instead of a ROM-data patch, the glove animation state machine, and the cross-bank-RTS trap the portrait hooks had to navigate.
+
+**Why runtime, not ROM-data:** patching `Layer1_Contender.bin` directly produces the right rest color but bleeds into the post-match BEST TIME background (which reuses parts of the contender palette region) and corrupts opponent palettes (since the per-fighter palette tables overlap the same WRAM range). The runtime approach leaves all ROM palette data intact and writes per-mode colors directly into WRAM at fight init, scoped to the WRAM slots actually read by player-only animations.
+
+**Glove animation state machine:** the player's gloves render through *two* systems with five distinct WRAM sources:
+
+| State | Render system | WRAM target | Driven by |
+|---|---|---|---|
+| Rest gloves | sprite OAM palette 0 c12-c15 | `$7E:0518-$051F` | written by Hook 1 trampoline at fight init (MVN 1) |
+| Powered-up (cycling charged-up) | sprite OAM palette 0 c12-c15 (same slot) | `$7E:0518-$051F` | engine snapshots rest, writes powered-up colors during animation, restores rest after — `CODE_00DD43` writer is hooked to use a per-mode lookup |
+| Knock-out-punch / rapid-punch | sprite OAM palette 3 c12-c15 | `$7E:0578-$057F` | `CODE_00DDAA` writer hooked for per-mode lookup; Hook 1 also pre-writes the chosen color into `$0578-$057F` (MVN 3) so the engine's snapshot/restore preserves it across attacks |
+| Portrait HUD (rest + 2 powered-up frames) | sprite OAM palette 1 c12-c13 | `$7E:0538/$053A` | `CODE_00EC6E` is called from 4 sites; each is hooked, and the stubs frame-detect via the c12 word the engine just wrote |
+| Victory pose / knockdown / get-up | BG layer 1 with BG palette 2 c12-c15 | `$7E:0458-$045F` | written by Hook 1 trampoline at fight init (MVN 2) |
+
+**The contender DMA + knock-out-punch snapshot/restore interaction:** at fight init, a DMA at `$00:97DF` copies `Layer1_Contender.bin` bytes into WRAM `$0540-$057F`. Bytes 56-63 of that file are vanilla glove green and land at `$0578-$057F` (sprite OAM palette 3 c12-c15). The engine's knock-out-punch state uses a snapshot/restore mechanism (`CODE_00DE01` snapshots `$0578-$057E` to DP `$22-$28` before attack frames; `CODE_00DDCC` restores after). Without intervention the snapshot captures vanilla green, the DDAA hook briefly writes our per-mode color during the attack, then the restore puts vanilla green back over our color — a visible green flash right after every knock-out-punch.
+
+The fix is the third MVN in Hook 1: at fight init the trampoline overwrites `$0578-$057F` with the chosen mode's color *before* the engine ever runs the snapshot. The snapshot then captures our color, and the restore preserves it across attacks.
+
+**Hook point: `$00:97E5`** (file `0x017E5`) — universal fight-init, inside `CODE_009762`. The original 6 bytes there (`A2 00 00 A0 E0 3E` = `LDX #$0000; LDY #$3EE0`) are replaced with `JSL $0D:FDD2 + 2×NOP`; the trampoline re-emits the displaced LDX/LDY before RTL. Note that `CODE_00913B` (which also does an MVN from bank `$08` to WRAM `$0540`) is **not** the universal fight-init — its only caller is gated by a P1+P2 button mask and reaches it only via the secret 2-player VS path.
+
+Memory environment at the hook: DBR=`$0D` (set by upstream `LDA #DATA_0D8010>>16; PHA; PLB`), DP=`$2100` (from upstream `LDX #!REGISTER_ScreenDisplayRegister; PHX; PLD`), X is 16-bit, A is 8-bit. All WRAM access uses long addressing (`LDA.l`/`STA.l`) — direct-page would target PPU registers (`$2100+offset`) and absolute would target bank-`$0D` ROM.
+
+**The cross-bank-RTS trap (portrait hooks):** `CODE_00EC6E` ends with intra-bank `RTS`, not `RTL`. JSL'ing it directly from bank `$0D` corrupts both the stack (RTS pops 2, JSL pushed 3) and PBR — RTS doesn't restore PBR, so the CPU resumes at `$00:<our_offset>` instead of `$0D:<our_offset>` after the call. The fix is a 5-byte trampoline at `$00:F5D0` (`JSR EC6E + RTL`): the sep-variant portrait stubs `JSL` the trampoline, the trampoline does an intra-bank `JSR` (RTS-balanced), then `RTL`s back to bank `$0D` cleanly.
+
+The rts-variant portrait hook (site `$00:EC69`, originally `JSR EC6E + RTS`) has a different stack scenario: the original `RTS` was meant to return to a bank-`$00` caller of `CODE_00EC87`. The replacement stub lives in bank `$00` (`UNK_00F5D0+5`) so its closing RTS runs with PBR=`$00` and pops the bank-`$00` caller's return cleanly. The stub does `JSR EC6E` directly (intra-bank, balanced), runs the per-mode fixup, then `PLA PLA PLA` to drop our own JSL frame (PCL/PCH/PBR) before falling through to `RTS`.
+
+**Per-frame portrait detection:** `CODE_00EC6E` reads from one of 11 source tables (`DATA_00ED03..DATA_00EDF3` for 9 brightness levels of rest, plus `DATA_00EE11` for blink frame A and `DATA_00EE2F` for blink frame B). The portrait stubs detect which frame the engine just loaded by re-reading `$7E:0538` after EC6E returns:
+
+| `$0538` value | Frame | Frame offset into portrait table |
+|---|---|---|
+| `$0D4A` | blink A (powered-up frame 1) | 12 |
+| `$14B1` | blink B (powered-up frame 2) | 24 |
+| anything else | rest | 0 |
+
+Then `table_offset = frame_offset + (mode-1)*4` indexes into the 36-byte portrait table at `$0D:FFAB` (3 modes × 3 frames × 4 bytes per entry, c12 word + c13 word).
+
+**Mode flag at WRAM `$7E:1FE0`:** placed in high low-RAM rather than direct-page low-RAM because the fight engine clobbers `$00A8` and adjacent low-RAM addresses during gameplay via direct-page accesses (DP=`$0000` collides with absolute `$00A8`). `$7E:1FE0` is untouched by direct-page activity in the fight loop. Reseeded by Hook 1 every fight init — there is no persistent state across matches, so no back-out clear hook is needed.
+
+**Free space consumed:**
+- Bank `$0D`: 459 bytes used within `$0D:FDAA-$0D:FFCE` (opp_table + rest_table + Hook 1 trampoline + powered-up stub + knock-out-punch stub + powered-up table + knock-out-punch table + portrait sep stub + portrait color table; with ~90 B of small unused gaps between sub-regions). Inside the disassembly's `%InsertGarbageData($0DFA69, ...)` zone.
+- Bank `$00`: 74 bytes at `$00:F5D0-$00:F619` (EC6E trampoline + portrait stub-rts). Inside the disassembly's `UNK_00F5D0` `%InsertGarbageData` zone.
+
+For the full asm overlay and per-mode color tables, see [doc/standalone/ALT_GLOVE_COLORS.md](standalone/ALT_GLOVE_COLORS.md).
+
+---
 
 ### [`spo_profile_stats_fix.ips`](../patches/standalone/spo_profile_stats_fix.ips)
 
@@ -826,27 +878,6 @@ New: 13 10 0A 12 17 0A 12 18 F4 14   ("30", "27", "28-4" — correct JP values)
 ```
 Old: 19   (digit "9" → 390 lbs)
 New: 17   (digit "7" → 370 lbs)
-```
-
----
-
-### [`spo_how_to_typo_fix.ips`](../patches/standalone/spo_how_to_typo_fix.ips)
-
-**What it does:** Fixes a single-letter typo in the in-game tutorial demo (the HOW-TO-PLAY attract sequence). The UPPERCUT lesson string in the original ROM reads *"Knock Out Punches can be highly **devestating**!"* — corrected to **devastating**.
-
-**Data location:** the tutorial demo's text strings live in `DATA_08B83E` (SNES `$08:B83E`, file `0x4383E`) and use a custom run-length-style font encoding where each byte after a `$8X` length prefix is a single character tile index. The relevant 12-character segment encodes `devestating!`:
-
-```
-8C 1C 0A 3C 0A 24 08 10 08 1E 06 20 16
-   d  e  v  e  s  t  a  t  i  n  g  !
-```
-
-`$8C` is the run length (12 chars); the bytes that follow are the per-character tile indices. In this encoding `e = $0A` and `a = $10`. The fix patches the 4th character byte from `$0A` (`e`) to `$10` (`a`).
-
-**Patch record:** 1 byte at file `0x43876`:
-```
-Old: 0A   ('e')
-New: 10   ('a')
 ```
 
 ---
@@ -959,19 +990,24 @@ byte[0] is added (×2) to the X-base for the BEST TIME / PR renderer at `CODE_08
 
 ---
 
-### [`spo_jp_charset_enabled.ips`](../patches/standalone/spo_jp_charset_enabled.ips)
+### [`spo_how_to_typo_fix.ips`](../patches/standalone/spo_how_to_typo_fix.ips)
 
-**What it does:** Makes L/R cycling between three character sets (Japanese-1, Japanese-2, Western) always active in name entry, with no button combo required. The screen opens on the Western set by default, so players who don't want Japanese characters don't need to do anything differently. L and R cycle through all three sets as they do in the Japanese version.
+**What it does:** Fixes a single-letter typo in the in-game tutorial demo (the HOW-TO-PLAY attract sequence). The UPPERCUT lesson string in the original ROM reads *"Knock Out Punches can be highly **devestating**!"* — corrected to **devastating**.
 
-The name-entry screen has a hidden mode where L/R cycles between three character sets (Japanese-1, Japanese-2, Western). Activated by holding X+A or Start+X+A at the New Game cursor. The JP version has it on by default.
+**Data location:** the tutorial demo's text strings live in `DATA_08B83E` (SNES `$08:B83E`, file `0x4383E`) and use a custom run-length-style font encoding where each byte after a `$8X` length prefix is a single character tile index. The relevant 12-character segment encodes `devestating!`:
 
-Three single-byte changes at SNES `$01:DF83`/`$DF92`/`$DF95` (file `0xDF83–0xDF95`):
+```
+8C 1C 0A 3C 0A 24 08 10 08 1E 06 20 16
+   d  e  v  e  s  t  a  t  i  n  g  !
+```
 
-| File offset | Old | New | Effect |
-|---|---|---|---|
-| `0xDF83` | `F0` (BEQ) | `80` (BRA) | Always take the Japanese-mode-enabled branch |
-| `0xDF92` | `9C` | `B7` | `JSR $D79C` → `JSR $D7B7` — load full Western UI tiles instead of just swapping the Japanese set (avoids corrupted tilemap on US ROM where Japanese-set UI tiles aren't pre-loaded) |
-| `0xDF95` | `00` | `02` | Initial `$1F = $02` (Western set index, matching the `$D7B7` load) |
+`$8C` is the run length (12 chars); the bytes that follow are the per-character tile indices. In this encoding `e = $0A` and `a = $10`. The fix patches the 4th character byte from `$0A` (`e`) to `$10` (`a`).
+
+**Patch record:** 1 byte at file `0x43876`:
+```
+Old: 0A   ('e')
+New: 10   ('a')
+```
 
 ---
 
@@ -990,9 +1026,63 @@ Bank `$0E` header table: `+$00` = MainMenu font, `+$02` = MinorCircuit, `+$04` =
 
 ---
 
-### [`spo_disable_security_checksum.ips`](../patches/standalone/spo_disable_security_checksum.ips)
+### [`spo_title_screen_special_logo.ips`](../patches/standalone/spo_title_screen_special_logo.ips)
 
-The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack, plus a 3-byte SNES-header checksum fix-up at file `0x7FDC`.
+**What it does:** Writes the text **SPECIAL EDITION** into the title screen's BG3 tilemap buffer at row 12, cols 6–22 (with a one-tile gap between SPECIAL and EDITION), using the standard menu font (palette 2, priority 1). Rendered every time the title screen BG init routine runs.
+
+**Hook** (6 bytes at file `0x44906`, SNES `$08:C906`):
+
+```
+Old: A0 01 18  8C 00 43   LDY.w #$1801 / STY.w $4300
+New: 22 DF FB 0D  EA EA   JSL $0D:FBDF / NOP / NOP
+```
+
+This is the 6 bytes immediately after the last `JSL CODE_08C433` call in `CODE_08C8AB` (the title screen BG init routine). The two displaced instructions are re-executed at the top of the stub.
+
+**Stub** (109 bytes at `$0D:FBDF`, file `0x6FBDF`):
+
+```asm
+A0 01 18        LDY.w #$1801        ; displaced instr 1
+8C 00 43        STY.w $4300         ; displaced instr 2
+C2 20           REP #$20            ; 16-bit A
+A9 1C 28        LDA.w #$281C        ; S  → WRAM $530C
+8F 0C 53 7E     STA.l $7E530C
+...             (13 more LDA/STA pairs for P,E,C,I,A,L,_,E,D,I,T,I,O,N)
+A9 17 28        LDA.w #$2817        ; N  → WRAM $532A
+8F 2A 53 7E     STA.l $7E532A
+E2 20           SEP #$20            ; restore 8-bit A
+6B              RTL
+```
+
+Tile entry format: `$28XX` = priority 1, palette 2, tile index XX. Font encoding: A–Z = `$0A–$23`. The space between words (col 13 = WRAM `$531A`) is left unwritten — the background fill tile at that position acts as the gap.
+
+**BG3 tilemap address formula (title screen):**
+
+```
+WRAM = $5000 + row × 64 + col × 2
+```
+
+The `$5000` block is DMA'd to VRAM `$4C00` by `CODE_08C8AB`. Despite `BG3SC` (`$2109`) being set to `$59` (→ VRAM `$5800`) elsewhere in the title screen init, empirically the `$5000` block (→ VRAM `$4C00`) is the buffer that renders as BG3 and carries the menu font. Writing to the `$6000` block (→ VRAM `$5800`) lands on BG1 instead. The static register assignment in the disassembly (`$59` at file `0x43FD9`) does not fully describe the runtime BG assignment — see [section 10](#10-title-screen-bg-layout-quirk).
+
+**Free space consumed:** `$0D:FBDF–$0D:FC4B` (109 bytes). Does not conflict with any other patch.
+
+---
+
+### [`spo_jp_charset_enabled.ips`](../patches/standalone/spo_jp_charset_enabled.ips)
+
+**What it does:** Makes L/R cycling between three character sets (Japanese-1, Japanese-2, Western) always active in name entry, with no button combo required. The screen opens on the Western set by default, so players who don't want Japanese characters don't need to do anything differently. L and R cycle through all three sets as they do in the Japanese version.
+
+The name-entry screen has a hidden mode where L/R cycles between three character sets (Japanese-1, Japanese-2, Western). Activated by holding X+A or Start+X+A at the New Game cursor. The JP version has it on by default.
+
+Three single-byte changes at SNES `$01:DF83`/`$DF92`/`$DF95` (file `0xDF83–0xDF95`):
+
+| File offset | Old | New | Effect |
+|---|---|---|---|
+| `0xDF83` | `F0` (BEQ) | `80` (BRA) | Always take the Japanese-mode-enabled branch |
+| `0xDF92` | `9C` | `B7` | `JSR $D79C` → `JSR $D7B7` — load full Western UI tiles instead of just swapping the Japanese set (avoids corrupted tilemap on US ROM where Japanese-set UI tiles aren't pre-loaded) |
+| `0xDF95` | `00` | `02` | Initial `$1F = $02` (Western set index, matching the `$D7B7` load) |
+
+---
 
 ### [`spo_credits.ips`](../patches/standalone/spo_credits.ips)
 
@@ -1152,53 +1242,15 @@ Uses `LDA.l` / `STA.l` (24-bit addressing) so DBR is irrelevant. The check fires
 
 **Why `$01:FEC2`:** the 206-byte block at `$01:FEC2–$01:FF8F` is labeled `UNK_01FEC2` in the disassembly (a copy of `$00:FEC2`, never executed at runtime — confirmed by ROM-wide JSR/JMP/BRA search). It is the largest free zone in bank `$01` and sits entirely before the interrupt-vector table at `$01:FF90`.
 
-### [`spo_title_screen_special_logo.ips`](../patches/standalone/spo_title_screen_special_logo.ips)
+### [`spo_disable_security_checksum.ips`](../patches/standalone/spo_disable_security_checksum.ips)
 
-**What it does:** Writes the text **SPECIAL EDITION** into the title screen's BG3 tilemap buffer at row 12, cols 6–22 (with a one-tile gap between SPECIAL and EDITION), using the standard menu font (palette 2, priority 1). Rendered every time the title screen BG init routine runs.
-
-**Hook** (6 bytes at file `0x44906`, SNES `$08:C906`):
-
-```
-Old: A0 01 18  8C 00 43   LDY.w #$1801 / STY.w $4300
-New: 22 DF FB 0D  EA EA   JSL $0D:FBDF / NOP / NOP
-```
-
-This is the 6 bytes immediately after the last `JSL CODE_08C433` call in `CODE_08C8AB` (the title screen BG init routine). The two displaced instructions are re-executed at the top of the stub.
-
-**Stub** (109 bytes at `$0D:FBDF`, file `0x6FBDF`):
-
-```asm
-A0 01 18        LDY.w #$1801        ; displaced instr 1
-8C 00 43        STY.w $4300         ; displaced instr 2
-C2 20           REP #$20            ; 16-bit A
-A9 1C 28        LDA.w #$281C        ; S  → WRAM $530C
-8F 0C 53 7E     STA.l $7E530C
-...             (13 more LDA/STA pairs for P,E,C,I,A,L,_,E,D,I,T,I,O,N)
-A9 17 28        LDA.w #$2817        ; N  → WRAM $532A
-8F 2A 53 7E     STA.l $7E532A
-E2 20           SEP #$20            ; restore 8-bit A
-6B              RTL
-```
-
-Tile entry format: `$28XX` = priority 1, palette 2, tile index XX. Font encoding: A–Z = `$0A–$23`. The space between words (col 13 = WRAM `$531A`) is left unwritten — the background fill tile at that position acts as the gap.
-
-**BG3 tilemap address formula (title screen):**
-
-```
-WRAM = $5000 + row × 64 + col × 2
-```
-
-The `$5000` block is DMA'd to VRAM `$4C00` by `CODE_08C8AB`. Despite `BG3SC` (`$2109`) being set to `$59` (→ VRAM `$5800`) elsewhere in the title screen init, empirically the `$5000` block (→ VRAM `$4C00`) is the buffer that renders as BG3 and carries the menu font. Writing to the `$6000` block (→ VRAM `$5800`) lands on BG1 instead. The static register assignment in the disassembly (`$59` at file `0x43FD9`) does not fully describe the runtime BG assignment — see [section 10](#10-title-screen-bg-layout-quirk).
-
-**Free space consumed:** `$0D:FBDF–$0D:FC4B` (109 bytes). Does not conflict with any other patch.
-
----
+The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack, plus a 3-byte SNES-header checksum fix-up at file `0x7FDC`.
 
 ### [`spo_sound_mode_ui_incomplete.ips`](../patches/incomplete/spo_sound_mode_ui_incomplete.ips)
 
 **What it does:** Adds a SOUND MODE entry to the title-screen menu and shifts the entire menu UI up by 4 rows to accommodate it. The menu now shows NEW GAME / CONTINUE / DATA / CLEAR / SOUND MODE across rows 9/13/17/17/21. Cursor highlight, OAM sprite, arrows, and the MENU/<<SELECT decoration header all shift consistently.
 
-**Known bugs:** (1) Pressing A on SOUND MODE falls through to the DATA CLEAR handler — no A-button dispatch case has been wired for cursor index 3, and wiring the sound library entry requires a runtime trace to identify its trigger mechanism (it sits outside the normal title-screen state machine and requires a different VRAM tileset). (2) After selecting NEW GAME or CONTINUE, moving the cursor in the name entry screen causes a CPU deadlock. Root cause: adding a 4th title-screen item requires `$14=3` (the highlight renderer loops items 0–3); this value persists in WRAM and `CODE_01CAEA` (name-entry cursor navigation) reads `DP+$20+x` as disable flags in a loop — with `$14=3` still set, `CC79` over-iterates into an out-of-bounds layout entry, corrupting memory and freezing on the next cursor movement. This is the same mechanism as the v9 regression in the exhibition hack development. This patch is a proof-of-concept only, is **not** included in `spo_special_edition.ips`, and is not recommended for general use.
+**Known bugs:** (1) Pressing A on SOUND MODE falls through to the DATA CLEAR handler — no A-button dispatch case has been wired for cursor index 3, and wiring the sound library entry requires a runtime trace to identify its trigger mechanism (it sits outside the normal title-screen state machine and requires a different VRAM tileset). (2) After selecting NEW GAME or CONTINUE, moving the cursor in the name entry screen causes a CPU deadlock. Root cause: adding a 4th title-screen item requires `$14=3` (the highlight renderer loops items 0–3); this value persists in WRAM and `CODE_01CAEA` (name-entry cursor navigation) reads `DP+$20+x` as disable flags in a loop — with `$14=3` still set, `CC79` over-iterates into an out-of-bounds layout entry, corrupting memory and freezing on the next cursor movement. This patch is a proof-of-concept only, is **not** included in `spo_special_edition_v1.6.ips`, and is not recommended for general use.
 
 **Why JSL instead of JSR:** The original `JSR $CA71` (3 bytes) is replaced with `JSL $0D:FB2D` (4 bytes) to reach the stub in bank `$0D` without needing any bank `$01` relay stub. Bank `$01` has zero confirmed-free bytes remaining. The JSL's 4th byte (`$0D`) overwrites `$B197` — the opcode of the following `LDX #$0002`. The stub compensates by inlining that `LDX` before `RTL`, and `$B198–$B199` are patched to `NOP NOP` as a safe landing pad after `RTL`.
 
@@ -1254,6 +1306,18 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 
 ## 7. Free space map
 
+### Bank `$00` (file `0x0000–0x7FFF`)
+
+The disassembly labels `$00:F5D0–$00:FF8F` as `UNK_00F5D0` — a 2,496-byte `%InsertGarbageData` region, never referenced by any JSL/JSR/JMP/JML in the ROM (verified by ROM-wide search). `spo_alt_glove_colors.ips` is the first patch in this repo to consume bytes here.
+
+| Range | Size | Contents |
+|---|---|---|
+| `0x75D0–0x75D4` | 5 B | EC6E trampoline (`spo_alt_glove_colors.ips` portrait sep stubs) |
+| `0x75D5–0x7619` | 69 B | Portrait stub-rts (`spo_alt_glove_colors.ips`) |
+| `0x761A–0x7F8F` | 2,422 B | **Free** |
+
+> Other regions in bank `$00` that look free are NOT safe — `0x0D03`, `0x0D25`, `0x0D42` are runs of `$FF` inside `DATA_008CC1` / `DATA_008CE5` (kanji/tile data tables); `0x202A` is zero-padding inside `DATA_00A004` (PPU register init table); `0x636B` is zero-padding inside `DATA_00E365` (indexed jump table). All would corrupt game data if patched.
+
 ### Bank `$01` (file `0x8000–0xFFFF`)
 
 **Zero confirmed-free bytes remain** in bank `$01`.
@@ -1271,7 +1335,7 @@ A2 03 00           LDX #$0003            ; item count (compensates clobbered $B1
 
 ### Bank `$02` (file `0x10000–0x17FFF`)
 
-No bytes consumed by the current Versus hack. Bank `$02` is untouched.
+No bytes consumed by any patch in this repo. Bank `$02` is untouched.
 
 ### Bank `$0D` (file `0x68000–0x6FFFF`)
 
@@ -1296,10 +1360,30 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FD73–0x6FD86` | 20 B | **Free** |
 | `0x6FD87–0x6FD98` | 18 B | Per-fighter portrait X-shift stub (`spo_super_macho_man_fix.ips`) |
 | `0x6FD99–0x6FDA9` | 17 B | Mode-flag rewrite stub (record [33b]) |
-| `0x6FDAA–0x6FFE3` | 570 B | **Free** |
+| `0x6FDAA–0x6FDB9` | 16 B | `spo_alt_glove_colors.ips` opponent → mode lookup table |
+| `0x6FDBA–0x6FDD1` | 24 B | `spo_alt_glove_colors.ips` rest-palette color table |
+| `0x6FDD2–0x6FE51` | 128 B | `spo_alt_glove_colors.ips` Hook 1 fight-init trampoline |
+| `0x6FE52–0x6FE7F` | 46 B | **Free** |
+| `0x6FE80–0x6FEBB` | 60 B | `spo_alt_glove_colors.ips` powered-up stub |
+| `0x6FEBC–0x6FEBF` | 4 B | **Free** |
+| `0x6FEC0–0x6FEFF` | 64 B | `spo_alt_glove_colors.ips` knock-out-punch stub |
+| `0x6FF00–0x6FF1F` | 32 B | `spo_alt_glove_colors.ips` powered-up color table |
+| `0x6FF20–0x6FF3F` | 32 B | **Free** |
+| `0x6FF40–0x6FF5F` | 32 B | `spo_alt_glove_colors.ips` knock-out-punch color table |
+| `0x6FF60–0x6FF67` | 8 B | **Free** |
+| `0x6FF68–0x6FFAA` | 67 B | `spo_alt_glove_colors.ips` portrait sep-variant stub |
+| `0x6FFAB–0x6FFCE` | 36 B | `spo_alt_glove_colors.ips` portrait color table |
+| `0x6FFCF–0x6FFE3` | 21 B | **Free** |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
 
-**Free space totals after Special Edition v1.6:** 29 + 8 + 2 + 20 + 570 = **629 bytes** in bank `$0D`, plus 4 bytes in bank `$01` at `$FFE0–$FFE3`. Total free space: **633 bytes**.
+**Free space totals after Special Edition v1.6:**
+
+| Region | Free |
+|---|---|
+| Bank `$0D` (`$0DFA69–$0DFFE3` zone) | 29 + 8 + 2 + 20 + 46 + 4 + 32 + 8 + 21 = **170 B** |
+| Bank `$01` (`$01:FFE0–$FFE3`) | **4 B** |
+| Bank `$00` (`UNK_00F5D0`) | **2,422 B** |
+| **Total** | **2,596 B** |
 
 `spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime.
 
@@ -1402,6 +1486,16 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FC91` | `0x6FC91` | P2-mirrors-P1 merge + poll stub (JSL from `$01:BECE`) |
 | `$0D:FD87` | `0x6FD87` | Per-fighter portrait X-shift stub (JSL from `$08:D2AB`) |
 | `$0D:FD99` | `0x6FD99` | Mode-flag rewrite stub (JSL from `$00:B1D9`) |
+| `$00:97E5` | `0x017E5` | `spo_alt_glove_colors.ips` Hook 1 site (universal fight-init) |
+| `$00:DD43` | `0x05D43` | `CODE_00DD43` powered-up palette writer — hooked by glove patch |
+| `$00:DDAA` | `0x05DAA` | `CODE_00DDAA` knock-out-punch palette writer — hooked by glove patch |
+| `$00:EC6E` | `0x06C6E` | `CODE_00EC6E` portrait palette writer — called from 4 hooked sites by glove patch |
+| `$00:F5D0` | `0x075D0` | Glove-patch EC6E trampoline (`JSR EC6E + RTL + RTS`) |
+| `$00:F5D5` | `0x075D5` | Glove-patch portrait stub-rts (used by site `$00:EC69`) |
+| `$0D:FDD2` | `0x6FDD2` | Glove-patch Hook 1 fight-init trampoline (triple-MVN palette write) |
+| `$0D:FE80` | `0x6FE80` | Glove-patch powered-up stub |
+| `$0D:FEC0` | `0x6FEC0` | Glove-patch knock-out-punch stub |
+| `$0D:FF68` | `0x6FF68` | Glove-patch portrait sep-variant stub |
 | `$01:DB27` | `0x0DB27` | Credits no-record fix hook: `JSR $D52B` → `JSR $FEC2` (`spo_credits.ips`) |
 | `$01:FEC2` | `0x0FEC2` | Credits no-record fix stub: call `CODE_01D52B`, clamp `$7E40B0` (`spo_credits.ips`) |
 | `$01:D8F7` | `0xD8F7` | Original menu-button poller (button-code in A; record [34] inlines a copy) |
@@ -1431,6 +1525,12 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$00A1` | P1 Start pressed-this-frame; record [34] sets bit 7 to inject P2 Start |
 | `$00A4`/`$00A5` | P2 held buttons (lo/hi) — read by record [34] |
 | `$00A6`/`$00A7` | P2 prev-held shadow (record [34]); unused by the original game |
+| `$0458–$045F` | BG palette 2 c12-c15 — written by glove patch (victory pose / KD / get-up) |
+| `$0518–$051F` | Sprite OAM palette 0 c12-c15 — player rest gloves (written by glove patch) |
+| `$0538`/`$053A` | Sprite OAM palette 1 c12-c13 — portrait HUD glove pixels |
+| `$0578–$057F` | Sprite OAM palette 3 c12-c15 — knock-out-punch base palette |
+| `$0600` | Current opponent index (0..15) — read by glove patch's Hook 1 |
+| `$1FE0` | Glove-color mode flag (`$00`=vanilla, `$01`=blue, `$02`=red, `$03`=yellow) |
 | `$700010,X` | SRAM Minor Circuit progress flag (X=`$0050` in this context) |
 | `$700080` | SRAM Special Circuit lock flag (0=unlocked) |
 
@@ -1455,6 +1555,11 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FD69` | `0x6FD69` | "MACHO MAN" tile string (`spo_super_macho_man_fix.ips`) |
 | `$0D:FD87` | `0x6FD87` | Per-fighter portrait X-shift stub (`spo_super_macho_man_fix.ips`) |
 | `$0D:FD99` | `0x6FD99` | Mode-flag rewrite stub |
+| `$0D:FDAA` | `0x6FDAA` | Opponent → mode lookup table (`spo_alt_glove_colors.ips`) |
+| `$0D:FDBA` | `0x6FDBA` | Rest-palette color table — 3 modes × 8 B (`spo_alt_glove_colors.ips`) |
+| `$0D:FF00` | `0x6FF00` | Powered-up color table — 4 modes × 8 B (`spo_alt_glove_colors.ips`) |
+| `$0D:FF40` | `0x6FF40` | Knock-out-punch color table — 4 modes × 8 B (`spo_alt_glove_colors.ips`) |
+| `$0D:FFAB` | `0x6FFAB` | Portrait color table — 3 modes × 3 frames × 4 B (`spo_alt_glove_colors.ips`) |
 | `$0D:FFE4` | `0x6FFE4` | Interrupt vectors — untouchable |
 | `$08:BB3D` | `0x43B3D` | Per-fighter banner pointer table (16 entries × 2 bytes) |
 | `$08:D926` | `0x45926` | Per-fighter banner entry for Macho Man (`spo_super_macho_man_fix.ips`) |
