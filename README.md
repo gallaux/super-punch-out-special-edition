@@ -78,9 +78,9 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 
 These are proof-of-concept patches with known bugs. Not included in the **Special Edition** and not recommended for general use:
 
-| File | What it does |
-|---|---|
-| [`spo_sound_mode_incomplete.ips`](patches/incomplete/spo_sound_mode_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu. **Known bugs: pressing A on SOUND MODE triggers DATA CLEAR instead; name-entry screen behaves incorrectly after selecting NEW GAME or CONTINUE.** Wiring the actual Sound Library launch requires further investigation. |
+| File | What it does | Details |
+|---|---|---|
+| [`spo_sound_mode_incomplete.ips`](patches/incomplete/spo_sound_mode_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu. **Known bugs: pressing A on SOUND MODE triggers DATA CLEAR instead; name-entry screen behaves incorrectly after selecting NEW GAME or CONTINUE.** Wiring the actual Sound Library launch requires further investigation. | [doc](doc/incomplete/AUDIO_MODE_INCOMPLETE.md) |
 
 ---
 
