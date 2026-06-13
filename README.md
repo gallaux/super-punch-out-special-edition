@@ -71,7 +71,7 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 | [`spo_title_screen_special_ring.ips`](patches/standalone/spo_title_screen_special_ring.ips) | Cosmetic: replaces the title-screen ring logo and color palette with the Special Circuit variants for some extra flair. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_RING.md) |
 | [`spo_title_screen_special_logo.ips`](patches/standalone/spo_title_screen_special_logo.ips) | Cosmetic: adds a SPECIAL EDITION text line to the title screen, below the main game logo. | [doc](doc/standalone/TITLE_SCREEN_SPECIAL_LOGO.md) |
 | [`spo_jp_charset_enabled.ips`](patches/standalone/spo_jp_charset_enabled.ips) | Makes the Japanese character set L/R-cycling always active in name entry, starting on the Western set. The hidden button combo is no longer needed. | [doc](doc/standalone/JP_CHARSET_ENABLED.md) |
-| [`spo_credits.ips`](patches/standalone/spo_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. | [doc](doc/standalone/CREDITS.md) |
+| [`spo_end_credits.ips`](patches/standalone/spo_end_credits.ips) | Adds a **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that matches the original cutscene's behavior, not specific to this patch. | [doc](doc/standalone/END_CREDITS.md) |
 | [`spo_disable_security_checksum.ips`](patches/standalone/spo_disable_security_checksum.ips) | The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. | [doc](doc/standalone/DISABLE_SECURITY_CHECKSUM.md) |
 
 ### Incomplete / experimental patches
@@ -80,7 +80,7 @@ These are proof-of-concept patches with known bugs. Not included in the **Specia
 
 | File | What it does |
 |---|---|
-| [`spo_sound_mode_ui_incomplete.ips`](patches/incomplete/spo_sound_mode_ui_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu and shifts the full menu UI to make room for it. **Known bugs: pressing A on SOUND MODE triggers the DATA CLEAR menu instead; selecting NEW GAME or CONTINUE then moving the cursor in the name entry screen causes a CPU deadlock.** Wiring the actual Sound Library launch requires further investigation. Not included in the Special Edition and not recommended for general use. |
+| [`spo_sound_mode_incomplete.ips`](patches/incomplete/spo_sound_mode_incomplete.ips) | Proof-of-concept patch that adds a SOUND MODE entry to the title-screen menu. **Known bugs: pressing A on SOUND MODE triggers DATA CLEAR instead; name-entry screen behaves incorrectly after selecting NEW GAME or CONTINUE.** Wiring the actual Sound Library launch requires further investigation. Not included in the Special Edition and not recommended for general use. |
 
 ---
 
@@ -120,9 +120,9 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 ---
 
-## Nice to have / todos
+## Incomplete implementation
 
-- **"SOUND MODE" menu implementation**: adding SOUND MODE to the title-screen menu is a known-problematic approach — adding a 4th item to the title screen cursor system causes a CPU deadlock in name entry due to the highlight renderer iterating beyond the valid layout table bounds. A proof-of-concept UI patch exists (`patches/incomplete/spo_sound_mode_ui_incomplete.ips`) but it has two unresolved bugs (A-button goes to DATA CLEAR; name entry deadlocks). Note that the Mode Select screen has a fully separate cursor system that reinitializes item counts on every entry — the same interference issue would not apply there.
+- **"SOUND MODE" menu implementation**: a proof-of-concept UI patch exists (`patches/incomplete/spo_sound_mode_incomplete.ips`) but has three unresolved issues: (1) the cursor snap system uses tilemap-derived position values — the correct cursor value for the SOUND MODE row has not been empirically determined; (2) the `$14` item-count variable bleeds into name-entry and downstream screens; (3) the Sound Library (`CODE_00913B`) lives outside the normal state machine and can only be launched safely from a cold boot state. Full investigation documented in [doc/incomplete/AUDIO_MODE_INCOMPLETE.md](doc/incomplete/AUDIO_MODE_INCOMPLETE.md).
 
 ---
 

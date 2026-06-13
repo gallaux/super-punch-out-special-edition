@@ -1,4 +1,4 @@
-# `spo_credits.ips` — Summary
+# `spo_end_credits.ips` — Summary
 
 Adds a fourth **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that's the original cutscene's terminal behavior, not introduced by this patch.
 
@@ -192,9 +192,9 @@ org $01FEC2
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
 - **Bundled into**: `spo_special_edition_v1.6.ips`
-- **Conflicts with**: `spo_sound_mode_ui_incomplete.ips` (an experimental patch in `patches/incomplete/`) — both want the same `$0D:FB0C+` free-space region. Don't combine.
+- **Conflicts with**: nothing in this repo
 - **Cheat-code compatibility**: unaffected
 
 ## See also
 
-For the full layout-shift rationale (why the cursor anchor `$53` is the load-bearing one — the `D082` text-snap scan loop), the descriptor sub-table layout, and the A-button dispatch stub assembly, see the `spo_credits.ips` entry in [doc/TECHNICAL.md § 6](../TECHNICAL.md).
+For the full layout-shift rationale (why the cursor anchor `$53` is the load-bearing one — the `D082` text-snap scan loop), the descriptor sub-table layout, and the A-button dispatch stub assembly, see the `spo_end_credits.ips` entry in [doc/TECHNICAL.md § 6](../TECHNICAL.md).

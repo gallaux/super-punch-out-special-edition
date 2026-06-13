@@ -801,7 +801,7 @@ C9 09            CMP #$09         ; restore caller's flag-set
 
 Each standalone patch has a companion doc in `doc/standalone/` that includes the patch records, byte-for-byte effect descriptions, free-space inventory, compatibility notes, and a **patch in asm form** section with the full assembler overlay. This section documents the deeper technical context (rationale, data-structure background, layout reasoning, etc.); the standalone docs are the right place for machine-readable asm.
 
-Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [ALT_GLOVE_COLORS](standalone/ALT_GLOVE_COLORS.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [CREDITS](standalone/CREDITS.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md)
+Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [ALT_GLOVE_COLORS](standalone/ALT_GLOVE_COLORS.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [CREDITS](standalone/END_CREDITS.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md)
 
 ### [`spo_alt_glove_colors.ips`](../patches/standalone/spo_alt_glove_colors.ips)
 
@@ -1086,7 +1086,7 @@ Three single-byte changes at SNES `$01:DF83`/`$DF92`/`$DF95` (file `0xDF83–0xD
 
 ---
 
-### [`spo_credits.ips`](../patches/standalone/spo_credits.ips)
+### [`spo_end_credits.ips`](../patches/standalone/spo_end_credits.ips)
 
 **What it does:** Adds a fourth `CREDITS` entry to the **Records View select screen** (the screen that asks which circuit's records to view) and tightens the layout so the four entries sit at rows 10/14/18/22 with the header at row 2 — matching the Championship circuit-select layout. Selecting `CREDITS` launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset; that is the original cutscene's terminal behavior, not introduced by this patch.
 
@@ -1190,7 +1190,7 @@ AB                 PLB
 5C 4F C9 01        JML $01:C94F     ; $44 ≠ 0 path
 ```
 
-**Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes) and `$01:FEC2–$01:FED3` (18 bytes). Conflicts with `spo_sound_mode_ui_incomplete.ips`, which also uses `$0D:FB0C+` — the two patches cannot be applied together.
+**Free space consumed:** `$0D:FB0C–$0D:FB61` (86 bytes) and `$01:FEC2–$01:FED3` (18 bytes).
 
 **No-record artifact — root cause and fix:**
 
@@ -1248,33 +1248,39 @@ Uses `LDA.l` / `STA.l` (24-bit addressing) so DBR is irrelevant. The check fires
 
 The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators (SNES Classic, Switch NSO), or patched ROMs. This patch disables that checksum check. Identical to patch record [1] in the Versus Hack, plus a 3-byte SNES-header checksum fix-up at file `0x7FDC`.
 
-### [`spo_sound_mode_ui_incomplete.ips`](../patches/incomplete/spo_sound_mode_ui_incomplete.ips)
+### [`spo_sound_mode_incomplete.ips`](../patches/incomplete/spo_sound_mode_incomplete.ips)
 
 **What it does:** Adds a SOUND MODE entry to the title-screen menu and shifts the entire menu UI up by 4 rows to accommodate it. The menu now shows NEW GAME / CONTINUE / DATA / CLEAR / SOUND MODE across rows 9/13/17/17/21. Cursor highlight, OAM sprite, arrows, and the MENU/<<SELECT decoration header all shift consistently.
 
-**Known bugs:** (1) Pressing A on SOUND MODE falls through to the DATA CLEAR handler — no A-button dispatch case has been wired for cursor index 3, and wiring the sound library entry requires a runtime trace to identify its trigger mechanism (it sits outside the normal title-screen state machine and requires a different VRAM tileset). (2) After selecting NEW GAME or CONTINUE, moving the cursor in the name entry screen causes a CPU deadlock. Root cause: adding a 4th title-screen item requires `$14=3` (the highlight renderer loops items 0–3); this value persists in WRAM and `CODE_01CAEA` (name-entry cursor navigation) reads `DP+$20+x` as disable flags in a loop — with `$14=3` still set, `CC79` over-iterates into an out-of-bounds layout entry, corrupting memory and freezing on the next cursor movement. This patch is a proof-of-concept only, is **not** included in `spo_special_edition_v1.6.ips`, and is not recommended for general use.
+**Known bugs:**
 
-**Why JSL instead of JSR:** The original `JSR $CA71` (3 bytes) is replaced with `JSL $0D:FB2D` (4 bytes) to reach the stub in bank `$0D` without needing any bank `$01` relay stub. Bank `$01` has zero confirmed-free bytes remaining. The JSL's 4th byte (`$0D`) overwrites `$B197` — the opcode of the following `LDX #$0002`. The stub compensates by inlining that `LDX` before `RTL`, and `$B198–$B199` are patched to `NOP NOP` as a safe landing pad after `RTL`.
+**(1) Pressing A on SOUND MODE falls through to DATA CLEAR.** The A-button handler at `CODE_01E0A3` dispatches on cursor position values derived from a snap-to-text scan, not a simple item index. The existing handler only knows 4 cursor stops (`$BF80`, `$BF90`, `$AFA0`, `$BFB0`). The SOUND MODE item adds a 5th visual entry but the D-pad navigation never reaches it — the cursor wraps from CIRCUIT SELECT directly back to NEW GAME, bypassing SOUND MODE entirely. The actual cursor value for the SOUND MODE row can only be determined empirically via a debugger (Mesen WRAM watch on `$0C10`). See [doc/incomplete/AUDIO_MODE_INCOMPLETE.md](../incomplete/AUDIO_MODE_INCOMPLETE.md) for the full investigation.
 
-**Why the stub inlines `CODE_01CA71`:** The original `JSR $CA71` not only triggered our `STZ $23` but also ran `CODE_01CA71`, which initializes the highlight system (`$74` = D0 base, `$49` = step size, `$12`/`$0C`/`$0E`). Replacing the JSR with JSL to a stub that only did `STZ $23; LDX; RTL` skipped `CA71` entirely, leaving those variables uninitialized — the highlight bars rendered at garbage positions. The fix is to inline `CA71`'s body into the stub before the `LDX`/`RTL`.
+**(2) Name-entry screen behaves incorrectly after selecting NEW GAME or CONTINUE.** Adding a 4th title-screen item sets `$14 = 3` (written by the stub at `$01:B194` via `LDX #$0003; RTL` → the caller's `STX.b $14`). The title screen reads `$14` during cursor navigation. The name-entry cursor code at `CODE_01CAEA` also reads `$14` as the cursor upper bound — with `$14 = 3` from the title menu, cursor navigation is corrupted. Root cause: `$14` is not a general item count; its meaning differs between the title screen, circuit select, and name entry, and the value set by this patch bleeds into downstream screens. This is a fundamental consequence of adding a menu item to this particular screen — see [doc/incomplete/AUDIO_MODE_INCOMPLETE.md](../incomplete/AUDIO_MODE_INCOMPLETE.md) for details.
+
+**(3) Sound Library is outside the normal state machine.** `CODE_00913B` (the Sound Library) was designed to run from a cold boot state. It cannot be called safely from within the running game — the NMI handler conflicts with its PPU setup, and its exit path routes through the VS mode check rather than returning cleanly. See [doc/incomplete/AUDIO_MODE_INCOMPLETE.md](../incomplete/AUDIO_MODE_INCOMPLETE.md) for all approaches attempted.
+
+**This patch is a proof-of-concept only, is not included in `spo_special_edition_v1.6.ips`, and is not recommended for general use.**
+
+**Why JSL instead of JSR:** The original `JSR $CA71` (3 bytes) is replaced with `JSL $00:F61A` (4 bytes, relocated from original `$0D:FB2D`). Bank `$01` has zero confirmed-free bytes. The JSL's 4th byte overwrites `$B197` — the opcode of the following `LDX #$0002`. The stub compensates by ending with `LDX #$0003; RTL` so the caller's `STX.b $14` writes the new item count.
 
 **Patch records:**
 
 | File offset | Bytes | Effect |
 |---|---|---|
 | `0x0B183` | `00` | Don't disable item 0 (NEW GAME) on no-save path |
-| `0x0B194` | `22 2D FB 0D` | JSL `$0D:FB2D` — replaces `JSR $CA71`, clobbers `$B197` |
-| `0x0B198` | `EA EA` | NOP NOP — RTL landing pad at the 2 bytes after JSL |
-| `0x0B19E` | `02` | Highlight base hi: `$0356` → `$0256` (row 9 start) |
-| `0x0B1BD` | `58` | Decoration tilemap hi: `$5994` → `$5894` (visual row 2) |
-| `0x0B1C6` | `00` | Left arrow hi: `$0190` → `$0090` |
-| `0x0B1C9` | `00` | Right arrow hi: `$01AE` → `$00AE` |
-| `0x0B1F2` | `47` | Sprite Y base: `$67` → `$47` (row 9) |
-| `0x6A3DA` | `0C FB` | Layout pointer → `$0D:FB0C` |
-| `0x6FB0C` | 33 bytes | Layout sub-table (8 entries + terminator) |
-| `0x6FB2D` | 31 bytes | Stub: inline `CA71` + `STZ $23` + `LDX #$0003` + `RTL` |
+| `0x0B194` | `22 1A F6 00` | JSL `$00:F61A` — replaces `JSR $CA71`, clobbers `$B197` |
+| `0x0B198` | `EA EA` | NOP NOP — RTL landing pad |
+| `0x0B19E` | `02` | Highlight base hi: row 9 start |
+| `0x0B1BD` | `58` | Decoration tilemap hi: visual row 2 |
+| `0x0B1C6` | `00` | Left arrow hi |
+| `0x0B1C9` | `00` | Right arrow hi |
+| `0x0B1F2` | `47` | Sprite Y base: row 9 |
+| `0x6A3DA` | `52 FE` | Layout pointer → `$0D:FE52` (relocated from `$0D:FB0C`) |
+| `0x6FE52` | 33 bytes | Layout sub-table (8 entries + terminator) |
+| `0x761A` | 31 bytes | Stub: inline `CA71` + `STZ $23` + `LDX #$0003` + `RTL` |
 
-**Layout sub-table (`$0D:FB0C`, 33 bytes):**
+**Layout sub-table (`$0D:FE52`, 33 bytes):**
 
 ```
 01 1C 58 52   NEW GAME    row 9  col 12  ($5258)
@@ -1288,22 +1294,7 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 00            terminator
 ```
 
-Text indices `$4B` = "SOUND" (5 tiles, from credits screen — safe to reuse) and `$0C` = "MODE" (4 tiles — already used throughout Mode Select).
-
-**Stub (`$0D:FB2D`, 31 bytes):**
-
-```asm
-64 23              STZ $23           ; persist flag across screen transitions
-A2 00 00  86 12    LDX #$0000; STX $12
-A2 40 00  86 74    LDX #$0040; STX $74   ; highlight D0 start
-A2 00 01  86 49    LDX #$0100; STX $49   ; highlight step per item
-A2 00 14  86 0C    LDX #$1400; STX $0C
-A2 00 0C  86 0E    LDX #$0C00; STX $0E
-A2 03 00           LDX #$0003            ; item count (compensates clobbered $B197)
-6B                 RTL
-```
-
-**Free space consumed:** `$0D:FB0C–$0D:FB4B` (64 bytes). This range conflicts with `spo_credits.ips`, which also uses `$0D:FB0C+`. The two patches are mutually exclusive — see the [free space map](#7-free-space-map) for the full bank-$0D layout under the current Special Edition.
+**Free space consumed:** 33 B at `$0D:FE52–$0D:FE72` and 31 B at `$00:F61A–$00:F638`.
 
 
 ## 7. Free space map
@@ -1331,7 +1322,7 @@ The disassembly labels `$00:F5D0–$00:FF8F` as `UNK_00F5D0` — a 2,496-byte `%
 | `0x8463–0x8468` | 6 B | Back-out clear stub |
 | `0x841F–0x842A` | 12 B | **NOT SAFE** — null entries in `DATA_01840B` (AI opcode table, opcodes `$14–$1E`) |
 | `0x875F–0x8766` | 8 B | **NOT SAFE** — `$FF` fill inside `DATA_01872F` (128-byte game data table) |
-| `0xFEC2–0xFED3` | 18 B | Consumed by `spo_credits.ips` no-record artifact fix stub |
+| `0xFEC2–0xFED3` | 18 B | Consumed by `spo_end_credits.ips` no-record artifact fix stub |
 | `0xFFB0–0xFFDF` | 48 B | Consumed by dispatch stub + trampolines + handlers |
 | `0xFFE0–0xFFE3` | 4 B | **Free** |
 
@@ -1351,7 +1342,7 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FACA–0x6FAFA` | 49 B | 12-record VERSUS opponent-select descriptor |
 | `0x6FAFB–0x6FB02` | 8 B | **Free** |
 | `0x6FB03–0x6FB0B` | 9 B | "PLAYER 2" tile data |
-| `0x6FB0C–0x6FB61` | 86 B | `spo_credits.ips` descriptor + tile string + dispatch stub |
+| `0x6FB0C–0x6FB61` | 86 B | `spo_end_credits.ips` descriptor + tile string + dispatch stub |
 | `0x6FB62–0x6FBDE` | 125 B | Versus opponent-select init + char-switch blanking stubs (records [29]-[30]) |
 | `0x6FBDF–0x6FC4B` | 109 B | `spo_title_screen_special_logo.ips` stub |
 | `0x6FC4C–0x6FC6F` | 36 B | P2 control dispatch stub (record [31]) |
@@ -1388,8 +1379,6 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | **Total** | **2,596 B** |
 
 `spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime.
-
-> The same `$0D:FB0C–$0D:FB4B` range is also written by `spo_sound_mode_ui_incomplete.ips` (64 B for the title-screen sound-mode layout table + stub). These two patches **cannot be applied together** — they are mutually exclusive layouts of the same free space.
 
 ---
 
@@ -1432,7 +1421,7 @@ Each entry: `[length_byte][tile_byte × length]`. The renderer reads `data[0]` a
 | `$2D` | PLAYER 2 (8 tiles) | `0x6FB03` — **repurposed** |
 | `$30` | MACHO MAN (9 tiles) | `0x6FD69` — **redirected by `spo_super_macho_man_fix.ips`** (originally pointed at `$0D:AC85` "MACHOMAN" 8 tiles, the typo is reversed by repointing to a new 9-tile entry in free space) |
 | `$37` | VERSUS (6 tiles) | `0x6FAC3` — **repurposed** |
-| `$A4` | CREDITS (7 tiles) | `0x6FB31` — **repurposed by `spo_credits.ips`** (originally pointed to garbage at `$B0A7`, never used as menu text) |
+| `$A4` | CREDITS (7 tiles) | `0x6FB31` — **repurposed by `spo_end_credits.ips`** (originally pointed to garbage at `$B0A7`, never used as menu text) |
 
 **Warning:** `text_idx=$00` is the descriptor terminator sentinel. It cannot be used as a live token index — the renderer stops on it.
 
@@ -1446,8 +1435,8 @@ Key entries used or modified by this hack:
 |---|---|---|---|
 | `$00` | 0 | `$AD48` | title screen layout |
 | `$04` | 2 | `$AD6A` | Mode Select layout (redirected to `$FA86` by `spo_versus_hack.ips`) |
-| `$12` | 9 | `$AE3F` | Records View select layout (redirected to `$FB0C` by `spo_credits.ips`) |
-| `$14` | 10 | `$AE60` | "RECORDS VIEW MODE" header (modified in place by `spo_credits.ips`) |
+| `$12` | 9 | `$AE3F` | Records View select layout (redirected to `$FB0C` by `spo_end_credits.ips`) |
+| `$14` | 10 | `$AE60` | "RECORDS VIEW MODE" header (modified in place by `spo_end_credits.ips`) |
 | `$A4` | 82 | `$AEB7` (stale) | VERSUS opponent-select layout (redirected to `$FACA` by `spo_versus_hack.ips`) |
 
 The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to derive the argument from Y, where `Y=$000C` (Special Circuit complete) or `Y=$000E` (otherwise), selecting between byte-offset entries 6 and 7.
@@ -1498,8 +1487,8 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FE80` | `0x6FE80` | Glove-patch powered-up stub |
 | `$0D:FEC0` | `0x6FEC0` | Glove-patch knock-out-punch stub |
 | `$0D:FF68` | `0x6FF68` | Glove-patch portrait sep-variant stub |
-| `$01:DB27` | `0x0DB27` | Credits no-record fix hook: `JSR $D52B` → `JSR $FEC2` (`spo_credits.ips`) |
-| `$01:FEC2` | `0x0FEC2` | Credits no-record fix stub: call `CODE_01D52B`, clamp `$7E40B0` (`spo_credits.ips`) |
+| `$01:DB27` | `0x0DB27` | Credits no-record fix hook: `JSR $D52B` → `JSR $FEC2` (`spo_end_credits.ips`) |
+| `$01:FEC2` | `0x0FEC2` | Credits no-record fix stub: call `CODE_01D52B`, clamp `$7E40B0` (`spo_end_credits.ips`) |
 | `$01:D8F7` | `0xD8F7` | Original menu-button poller (button-code in A; record [34] inlines a copy) |
 | `$08:D162` | `0x45162` | Pre-fight profile screen renderer |
 | `$08:D4AF` | `0x454AF` | BEST TIME / PR boss-name banner renderer |
@@ -1545,7 +1534,7 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$0D:FA69` | `0x6FA69` | Start of confirmed garbage zone (1,403 bytes free) |
 | `$0D:FA86` | `0x6FA86` | New Mode Select layout sub-table |
 | `$0D:FACA` | `0x6FACA` | 12-record VERSUS opponent-select descriptor |
-| `$0D:FB0C` | `0x6FB0C` | New Records View select-screen descriptor (`spo_credits.ips`) |
+| `$0D:FB0C` | `0x6FB0C` | New Records View select-screen descriptor (`spo_end_credits.ips`) |
 | `$0D:FB31` | `0x6FB31` | "CREDITS" tile string |
 | `$0D:FB39` | `0x6FB39` | A-button dispatch stub for Records View select |
 | `$0D:FB62` | `0x6FB62` | Versus opponent-select init blanking stub |
