@@ -36,7 +36,7 @@ org $00BC23
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.6.ips` (this fix is also included as record [1] of `spo_versus_hack.ips`)
+- **Bundled into**: `spo_special_edition_v1.7.ips` (this fix is also included as record [1] of `spo_versus_hack.ips`)
 - **Conflicts with**: `spo_versus_hack.ips` writes the same value to the same byte — applying both is a harmless no-op double-write.
 - **Cheat-code compatibility**: unaffected
 

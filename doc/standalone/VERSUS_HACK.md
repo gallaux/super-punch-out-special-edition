@@ -329,7 +329,7 @@ The `; (full body in TECHNICAL.md record [N])` placeholders cover three large st
 ## Compatibility
 
 - **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.6.ips`
+- **Bundled into**: `spo_special_edition_v1.7.ips`
 - **Conflicts with**: `spo_disable_security_checksum.ips` writes the same value to file `0x003C23` (the Special Circuit lock-bypass byte) — applying both is a harmless no-op double-write.
 - **Cheat-code compatibility**: unaffected
 

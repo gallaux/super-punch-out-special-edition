@@ -4,10 +4,10 @@ This document covers the full reverse-engineering and implementation details beh
 
 **Reference:** all `CODE_*`, `DATA_*`, `UNK_*` labels and `%InsertGarbageData` regions referenced in this document follow the conventions of [**Yoshifanatic1's Super Punch-Out!! Disassembly**](https://github.com/Yoshifanatic1/Super-Punch-Out-Disassembly), which has been an invaluable reference throughout the development of this hack.
 
-The recommended distribution is the bundled [`spo_special_edition_v1.6.ips`](../patches/spo_special_edition_v1.6.ips), which stacks every patch in this repo.
-The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (alt glove colors, profile stat fixes, Super Macho Man typo fix, tutorial-demo typo fix, title-screen tweaks, JP charset, credits entry) layers on top as standalone patches.
+The recommended distribution is the bundled [`spo_special_edition_v1.7.ips`](../patches/spo_special_edition_v1.7.ips), which stacks every patch in this repo and stamps a correct SNES header checksum for the combined ROM.
+The core patch it builds on is [`spo_versus_hack.ips`](../patches/standalone/spo_versus_hack.ips) — that's what adds VERSUS MODE, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock; everything else (iron circuit, alt glove colors, profile stat fixes, Super Macho Man typo fix, tutorial-demo typo fix, title-screen tweaks, JP charset, credits entry) layers on top as standalone patches.
 
-**Compatibility guarantee:** all 10 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`. The only overlap between any two standalones is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write.
+**Compatibility guarantee:** all 11 standalone patches in this repo are byte-level compatible with one another. They can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.7.ips`. The only intentional overlap is at file `0x003C23` (the Special Circuit lock-bypass byte), which both `spo_versus_hack.ips` and `spo_disable_security_checksum.ips` write with the same value — applying both is a harmless no-op double-write. All other patches are byte-disjoint.
 
 ---
 
@@ -483,10 +483,13 @@ DA3DA byte-offset `$A4` (entry index 82) is repurposed by this hack to point at 
 0C 1C 6A 54   MODE          row 17 col 21  ($546A)
 11 1C 4C 55   BUTTON        row 21 col 6   ($554C)
 13 1C 5A 55   SETTING       row 21 col 13  ($555A)
+0C 1C 6C 55   MODE          row 21 col 22  ($556C)
 0C 20 54 58   MODE          header row     ($5854)
 05 20 5C 58   <<SELECT      header row     ($585C)
 00            terminator
 ```
+
+15 records × 4 bytes + 1 terminator = 61 bytes. The trailing `MODE` on the BUTTON SETTING row (third entry on that line) matches the original 4-item layout at `DATA_0DAD6A`, which renders the row as `BUTTON SETTING MODE`.
 
 ---
 
@@ -801,7 +804,7 @@ C9 09            CMP #$09         ; restore caller's flag-set
 
 Each standalone patch has a companion doc in `doc/standalone/` that includes the patch records, byte-for-byte effect descriptions, free-space inventory, compatibility notes, and a **patch in asm form** section with the full assembler overlay. This section documents the deeper technical context (rationale, data-structure background, layout reasoning, etc.); the standalone docs are the right place for machine-readable asm.
 
-Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [ALT_GLOVE_COLORS](standalone/ALT_GLOVE_COLORS.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [CREDITS](standalone/END_CREDITS.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md)
+Standalone doc links: [VERSUS_HACK](standalone/VERSUS_HACK.md) · [IRON_CIRCUIT](standalone/IRON_CIRCUIT.md) · [ALT_GLOVE_COLORS](standalone/ALT_GLOVE_COLORS.md) · [PROFILE_STATS_FIX](standalone/PROFILE_STATS_FIX.md) · [SUPER_MACHO_MAN_FIX](standalone/SUPER_MACHO_MAN_FIX.md) · [HOW_TO_TYPO_FIX](standalone/HOW_TO_TYPO_FIX.md) · [TITLE_SCREEN_SPECIAL_RING](standalone/TITLE_SCREEN_SPECIAL_RING.md) · [TITLE_SCREEN_SPECIAL_LOGO](standalone/TITLE_SCREEN_SPECIAL_LOGO.md) · [JP_CHARSET_ENABLED](standalone/JP_CHARSET_ENABLED.md) · [CREDITS](standalone/END_CREDITS.md) · [DISABLE_SECURITY_CHECKSUM](standalone/DISABLE_SECURITY_CHECKSUM.md)
 
 ### [`spo_alt_glove_colors.ips`](../patches/standalone/spo_alt_glove_colors.ips)
 
@@ -852,6 +855,60 @@ Then `table_offset = frame_offset + (mode-1)*4` indexes into the 36-byte portrai
 - File `0x05DF` (SNES `$00:85DF`): 8 bytes — `DATA_008547` (ColorEndScreen.bin) palette 4 c12-c15. In-place edit, no free space consumed.
 
 For the full asm overlay and per-mode color tables, see [doc/standalone/ALT_GLOVE_COLORS.md](standalone/ALT_GLOVE_COLORS.md).
+
+---
+
+### [`spo_iron_circuit.ips`](../patches/standalone/spo_iron_circuit.ips)
+
+**What it does:** Adds a fifth circuit, **IRON CIRCUIT**, to Championship Mode → Circuit Select. A 16-opponent gauntlet that runs every fighter in opponent order from Gabby Jay through Nick Bruiser without HP recovery between fights. Player stamina and a cumulative knockdown count carry across every match; the run ends in TKO when the cumulative KD count reaches 3. The patch also makes the SPECIAL CIRCUIT slot always render on the Championship Mode and Time Attack circuit-select screens (with vanilla disabled-until-unlocked rendering preserved) so the new 5-row layout is consistent regardless of save state.
+
+The full byte-level breakdown — hook sites, stub assembly, free-space layout, WRAM/SRAM map — lives in the standalone doc [doc/standalone/IRON_CIRCUIT.md](standalone/IRON_CIRCUIT.md). This section covers the deeper technical context: *why* iron's design hijacks Special Circuit's identity, the architecture of the 16-opponent chain, and the championship-belt screen flag-passing pattern.
+
+#### Why iron hijacks `$0601 = $03` (Special Circuit)
+
+The vanilla circuit-themed asset loads (BG, ring, palette, announcer, pre-fight title text, score-tally circuit name, etc.) all key off `$0601` (the circuit number, 0..3). Rather than introduce a new circuit ID and patch every downstream lookup, iron's confirm hook writes `$0601 = $03` (Special) on iron entry. Every asset load then naturally inherits Special's data, with three flag-gated overrides on top:
+
+- **BG2 palette** at `$00:9C18` — substitutes a deep-red (rust) palette for Special's purple, giving iron a distinct look on pre-fight + BEST TIME screens.
+- **Pre-fight title** at `$08:D19D` — substitutes a runtime-staged `IRON⋆CIRCUIT` letter-byte string for Special's `SPECIAL⋆CIRCUIT`. The shared `⋆CIRCUIT` suffix re-renders unmodified.
+- **Score-tally circuit name** at `$01:9EEC` — substitutes a new IRON descriptor at `$0D:FA69` for the engine's per-circuit name lookup so the post-match score line reads `IRON CIRCUIT TOTAL`.
+
+The actual opponent index is `$0600`, kept independent of the circuit identity. Iron's confirm hook resets `$0600 = 0` (Gabby Jay) on iron entry; POST_MATCH at `$00:B250` drives the 16-opp chain by replicating the engine's natural `INC $0600` and gating chain advance on `$0600 < $10`.
+
+#### 16-opponent chain architecture
+
+The vanilla post-fight flow at `$00:B231` decrements `$0602` (the remaining-fights counter, initialized to 3 for a 4-fight circuit) and jumps to either the next-fight handler or the circuit-complete handler depending on whether `$0602` reached zero. Iron replaces this with a single hook at `$00:B250` (POST_MATCH override) that:
+
+1. Replicates the eaten `DEC $0602`.
+2. On non-iron, JMLs to the original `$00:88B1` (next-fight target).
+3. On iron with `$0600 < $10`, writes `$0602 = $0600 EOR $0F`, then JMLs to `$00:88B1`. The EOR encoding makes `$0602 == 0` only when post-INC `$0600 == $0F` (i.e. transitioning into fight 16) — that fires the engine's `CODE_00D6C5` celebration animation gate during the win sequence, so Nick Bruiser gets the same jump-180-arm-raise as every other circuit's final boss.
+4. On iron with `$0600 >= $10`, clears the iron flag and JMLs to credits via the championship-belt screen handler.
+
+The EOR encoding is mandatory for byte-budget reasons — the v19 stub region is hardcoded to 320 bytes, and a naive `CMP/BEQ/LDA/BRA/LDA/STA` encoding overflows that budget. The `EOR #$0F ; STA $0602` form is 5 bytes vs. 13.
+
+#### Championship belt screen — secondary flag pattern
+
+The iron-complete path needs a championship-belt screen with iron-themed presentation (rust BG, steel-blue belt, `IRON CIRCUIT CLEAR` title, opponent records suppressed, `16 Wins {N} Loss` W/L line). Multiple sub-hooks inside `CODE_00BEE8` and `CODE_08BFBC` need to know "this is the iron belt screen" — but the iron flag `$7E:1FE1` has already been cleared by the iron-complete path before the belt screen runs (so the belt-screen sub-hooks would see `$7E:1FE1 = 0` and take the vanilla path).
+
+The pattern: a separate **iron belt-screen flag** at `$7E:1FEC` (with `$7E:1FED` for M=16 read alignment) is set by CHAMP_SCREEN immediately before `JSR $BEE8` and cleared after. All belt-screen sub-hooks (BF81 palette, CHAMP_TITLE, TEXT_SKIP, W/L digit override) check `$7E:1FEC` instead of the iron flag. A defensive `B231_INIT` hook at `$00:B231` clears both bytes on every post-fight (all circuits) so cold-boot WRAM `$FF` doesn't trigger iron rendering on vanilla circuits.
+
+#### SRAM persistence
+
+Iron W/L data is stored at `$700FE8 + slot` (primary) and `$701FE8 + slot` (backup), 1 byte per slot, 8 slots. These addresses sit past the engine's per-slot record table (`$700100..$700F7F`, 30 records × `$80` stride) and outside the engine's checksum sweep (`CODE_01ACFB` only sweeps `$700004..$700100` per outer iteration). The dual-write covers the rare `CODE_01ACCA` corruption-recovery path, which `MVN`s `$701000..$701FFF` over `$700000..$700FFF` and would clobber primary if backup didn't match.
+
+Encoding is offset-by-1 with `$00` reserved for "never completed":
+
+| Encoded value | Meaning |
+|---|---|
+| `$00` | Never completed (matches both fresh battery SRAM and post-ALL-CLEAR zeroed SRAM — no init code required) |
+| `$01` | 16-0 (perfect) |
+| `$02` | 16-1 |
+| `$03` | 16-2 |
+
+Only runs with 2 or fewer losses are saved. A run that ends via a 3rd cumulative KD does not update the record. The Circuit Select W/L line renders only when the encoded byte is non-zero.
+
+**Clearing iron records on profile delete.** ALL CLEAR (the title-screen DATA CLEAR option) zeros the entire SRAM, so iron data is wiped automatically. Per-profile FILE KILL is different: the engine's slot-delete routine (`CODE_01B736`) only zeros the slot record at `$700100 + slot*$80`, leaving the iron W/L bytes at `$700FE8 + slot` intact. A 4-byte hook at `$01:B7D6` (replaces the `LDA.l $700005` immediately following the slot's `STA.l $700006,X`) calls a small bank-`$01` stub that zeros both `$700FE8,X` (primary) and `$701FE8,X` (backup), then replicates the eaten instruction. X already holds the slot index from the engine's earlier `TAX`. ALL CLEAR uses a different routine (`CODE_01ABAD`) and is unaffected.
+
+For the full asm overlay, hook table, and stub map, see [doc/standalone/IRON_CIRCUIT.md](standalone/IRON_CIRCUIT.md).
 
 ---
 
@@ -910,10 +967,10 @@ The available horizontal layout slot is exactly 21 columns. With the correct "SU
 
 | System | Font | Used by | Source |
 |---|---|---|---|
-| Menu-font (1 tile per char) | A=`$0A`, …, Z=`$23`, space=`$EF` (renderer also column-skips on `$FF`, which we use here) | Mode Select, opponent-select, TA title card, Personal Records | DA332 entry `$30` (`$0D:AC85`) |
+| Menu-font (1 tile per char) | A=`$0A`, …, Z=`$23`, space=`$FF` (column-skip), `$EF`=`<` glyph | Mode Select, opponent-select, TA title card, Personal Records | DA332 entry `$30` (`$0D:AC85`) |
 | Banner-font (1 col × 2 rows per char) | A=`$45`, B=`$46`, …, M=`$61`, S=`$67`, space=`$EF` (real tile, not a skip) | BEST TIME table, pre-fight profile screen | Per-fighter table at `$08:BB3D` |
 
-(Note: the two renderers handle space-like bytes oppositely. In the menu font, `$EF` is the documented space tile while `$FF` is treated as a column-skip — both produce a visible space. In the banner font, `$EF` is a real tile that gets rendered. We use `$FF` in the new menu-font string at `$0D:FD69` for consistency with neighboring entries like MAD CLOWN, and `$EF` in the banner-font entry at `$08:D926` because that's what the banner renderer expects.)
+(Note: `$FF` is the menu-font's column-skip sentinel and is the correct space tile for menu-font strings — the renderer at `CODE_01D24D` advances the tilemap pointer without writing, leaving the previously-cleared BG tile visible. `$EF` in the menu font is a real tile — the literal `<` glyph (used by the original `<<SELECT` header). The new menu-font MACHO MAN string at `$0D:FD69` uses `$FF` for the inter-word space; the banner-font entry at `$08:D926` uses `$EF` because the banner renderer treats `$EF` as a real space tile, not a skip.)
 
 **Banner-font letter map** (top tile values; bottom-half tile is always top + `$10`):
 
@@ -1260,7 +1317,7 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 **(3) Sound Library is outside the normal state machine.** `CODE_00913B` (the Sound Library) was designed to run from a cold boot state. It cannot be called safely from within the running game — the NMI handler conflicts with its PPU setup, and its exit path routes through the VS mode check rather than returning cleanly. See [doc/incomplete/AUDIO_MODE_INCOMPLETE.md](../incomplete/AUDIO_MODE_INCOMPLETE.md) for all approaches attempted.
 
-**This patch is a proof-of-concept only, is not included in `spo_special_edition_v1.6.ips`, and is not recommended for general use.**
+**This patch is a proof-of-concept only, is not included in `spo_special_edition_v1.7.ips`, and is not recommended for general use.**
 
 **Why JSL instead of JSR:** The original `JSR $CA71` (3 bytes) is replaced with `JSL $00:F61A` (4 bytes, relocated from original `$0D:FB2D`). Bank `$01` has zero confirmed-free bytes. The JSL's 4th byte overwrites `$B197` — the opcode of the following `LDX #$0002`. The stub compensates by ending with `LDX #$0003; RTL` so the caller's `STX.b $14` writes the new item count.
 
@@ -1301,28 +1358,36 @@ The World Circuit completion checksum prevents the Special Circuit from unlockin
 
 ### Bank `$00` (file `0x0000–0x7FFF`)
 
-The disassembly labels `$00:F5D0–$00:FF8F` as `UNK_00F5D0` — a 2,496-byte `%InsertGarbageData` region, never referenced by any JSL/JSR/JMP/JML in the ROM (verified by ROM-wide search). `spo_alt_glove_colors.ips` is the first patch in this repo to consume bytes here.
+The disassembly labels `$00:F5D0–$00:FF8F` as `UNK_00F5D0` — a 2,496-byte `%InsertGarbageData` region, never referenced by any JSL/JSR/JMP/JML in the ROM (verified by ROM-wide search). `spo_alt_glove_colors.ips` was the first patch in this repo to consume bytes here; `spo_iron_circuit.ips` is now the largest consumer.
 
 | Range | Size | Contents |
 |---|---|---|
 | `0x75D0–0x75D4` | 5 B | EC6E trampoline (`spo_alt_glove_colors.ips` portrait sep stubs) |
 | `0x75D5–0x7619` | 69 B | Portrait stub-rts (`spo_alt_glove_colors.ips`) |
-| `0x761A–0x7F8F` | 2,422 B | **Free** |
+| `0x761A–0x7CD9` | 1,728 B | **`spo_iron_circuit.ips`** — inlined descriptor renderer + IRON tile writer + 30+ flag-gated stubs (CONFIRM, POST_MATCH, DISPATCH, BG2 palette + iron rust palette, pre-fight title, rank renderer, portrait shift, KD/HP carry-over, HP-bar tween fix, championship belt screen palette/title/text-skip/digit override, SAVE_STUB, DRAW_STUB) |
+| `0x7CDA–0x7F8F` | ~693 B | **Free** |
 
 > Other regions in bank `$00` that look free are NOT safe — `0x0D03`, `0x0D25`, `0x0D42` are runs of `$FF` inside `DATA_008CC1` / `DATA_008CE5` (kanji/tile data tables); `0x202A` is zero-padding inside `DATA_00A004` (PPU register init table); `0x636B` is zero-padding inside `DATA_00E365` (indexed jump table). All would corrupt game data if patched.
 
 ### Bank `$01` (file `0x8000–0xFFFF`)
 
-**Zero confirmed-free bytes remain** in bank `$01`.
+`spo_iron_circuit.ips` consumes two `%InsertGarbageData` zones in this bank: `UNK_01F784` (`$01:F784–$01:F7FF`, 124 B — hard ceiling at `$01:F800` is real game code) and `UNK_01FEC2` (`$01:FEC2–$01:FF8F`).
 
-| Range | Size | Status |
+| Range | Size | Contents |
 |---|---|---|
 | `0x8018–0x8029` | 18 B | Consumed by conditional header stub |
 | `0x8457–0x8462` | 12 B | Trampoline 1 |
 | `0x8463–0x8468` | 6 B | Back-out clear stub |
 | `0x841F–0x842A` | 12 B | **NOT SAFE** — null entries in `DATA_01840B` (AI opcode table, opcodes `$14–$1E`) |
 | `0x875F–0x8766` | 8 B | **NOT SAFE** — `$FF` fill inside `DATA_01872F` (128-byte game data table) |
+| `0xF784–0xF7FE` | 123 B | **`spo_iron_circuit.ips`** — REST_NO_GROW, DRAIN_SKIP, TALLY_NAME, RECOVERY_OVERRIDE, CONTINUE_RESET stubs |
+| `0xF7FF–0xF7FF` | 1 B | **Free** (end of `UNK_01F784`) |
 | `0xFEC2–0xFED3` | 18 B | Consumed by `spo_end_credits.ips` no-record artifact fix stub |
+| `0xFED4–0xFF11` | 62 B | **`spo_iron_circuit.ips`** — PHASE_BYPASS (33 B), BONUS_ZERO (13 B), FAST_CASCADE (16 B) stubs |
+| `0xFF12–0xFF1F` | 14 B | **Free** (gap between FAST_CASCADE and the iron W/L draw trampolines) |
+| `0xFF20–0xFF2F` | 16 B | **`spo_iron_circuit.ips`** — iron W/L draw trampoline pair |
+| `0xFF30–0xFF3E` | 15 B | **`spo_iron_circuit.ips`** — SLOT_KILL stub (clear iron W/L on per-profile FILE KILL) |
+| `0xFF3F–0xFF8F` | ~81 B | **Free** (end of `UNK_01FEC2`) |
 | `0xFFB0–0xFFDF` | 48 B | Consumed by dispatch stub + trampolines + handlers |
 | `0xFFE0–0xFFE3` | 4 B | **Free** |
 
@@ -1336,7 +1401,8 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 
 | Range | Size | Contents |
 |---|---|---|
-| `0x6FA69–0x6FA85` | 29 B | **Free** |
+| `0x6FA69–0x6FA75` | 13 B | **`spo_iron_circuit.ips`** IRON tally descriptor (renders "   IRON CIRCUIT TOTAL" on the post-match score-tally screen) |
+| `0x6FA76–0x6FA85` | 16 B | **Free** |
 | `0x6FA86–0x6FAC2` | 61 B | New Mode Select layout sub-table |
 | `0x6FAC3–0x6FAC9` | 7 B | "VERSUS" tile data |
 | `0x6FACA–0x6FAFA` | 49 B | 12-record VERSUS opponent-select descriptor |
@@ -1369,16 +1435,32 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | `0x6FFCF–0x6FFE3` | 21 B | **Free** |
 | `0x6FFE4–0x6FFFF` | 28 B | Interrupt vectors — **untouchable** |
 
-**Free space totals after Special Edition v1.6:**
+**Free space totals after Special Edition v1.7:**
 
 | Region | Free |
 |---|---|
-| Bank `$0D` (`$0DFA69–$0DFFE3` zone) | 29 + 8 + 2 + 20 + 46 + 4 + 32 + 8 + 21 = **170 B** |
+| Bank `$0D` (`$0DFA69–$0DFFE3` zone) | 16 + 8 + 2 + 20 + 46 + 4 + 32 + 8 + 21 = **157 B** |
+| Bank `$01` `UNK_01F784` (end at `$01:F800`) | **1 B** |
+| Bank `$01` `UNK_01FEC2` (`$01:FF12–$FF1F` and `$01:FF3F–$FF8F`) | **~95 B** |
 | Bank `$01` (`$01:FFE0–$FFE3`) | **4 B** |
-| Bank `$00` (`UNK_00F5D0`) | **2,422 B** |
-| **Total** | **2,596 B** |
+| Bank `$00` `UNK_00F5D0` (`$00:FCDA–$FF8F`) | **~693 B** |
+| **Total** | **~950 B** |
 
-`spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime.
+`spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime. `spo_iron_circuit.ips` adds **no stub bytes** to bank `$08` (only single-instruction in-place hooks); iron-staged data lives in low WRAM and is read via the bank-`$08` low-WRAM mirror.
+
+**WRAM and SRAM allocations** (Special Edition v1.7):
+
+| Region | Bytes | Owner |
+|---|---|---|
+| `$7E:1FE0` | 1 | `spo_alt_glove_colors.ips` glove-mode flag |
+| `$7E:1FE1` | 1 | `spo_iron_circuit.ips` iron flag |
+| `$7E:1FE5–$1FE9` | 5 | `spo_iron_circuit.ips` runtime-staged "IRON" letter-byte string |
+| `$7E:1FEA` | 1 | `spo_iron_circuit.ips` cumulative KD count |
+| `$7E:1FEB` | 1 | `spo_iron_circuit.ips` HP stash sentinel |
+| `$7E:1FEC`/`$1FED` | 2 | `spo_iron_circuit.ips` iron belt-screen flag (M=16 read alignment) |
+| `$7E:1FEE` | 1 | `spo_iron_circuit.ips` per-run loss counter |
+| `$70:0FE8 + slot` | 8 | `spo_iron_circuit.ips` iron W/L primary SRAM (1 byte × 8 slots) |
+| `$70:1FE8 + slot` | 8 | `spo_iron_circuit.ips` iron W/L backup SRAM |
 
 ---
 
@@ -1386,13 +1468,23 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 
 ### Font encoding (menus and profile screens)
 
-Used by the menu text renderer for Mode Select, opponent-select, etc.:
+Used by the menu text renderer for Mode Select, opponent-select, etc. Per the disassembly's [`Tables/Fonts/SmallFont.txt`](../work/disassembly/SPO/Tables/Fonts/SmallFont.txt):
 
 ```
-0–9   → $00–$09
-A–Z   → $0A–$23  (A=$0A, B=$0B, …, Z=$23)
-space → $EF      (in menu font; $64 renders as a Japanese glyph in this context)
+0–9         → $00–$09
+A–Z         → $0A–$23   (A=$0A, B=$0B, …, Z=$23)
+. ' , : ! ? → $24, $25, $26, $29, $2A, $2B
+- x _ #     → $2C, $2D, $2E, $2F
+=           → $54
+<           → $EF       (real tile — the literal '<' glyph, NOT a space)
+space       → $FF       (column-skip; renderer at CODE_01D24D advances the
+                         tilemap pointer without writing, leaving the previously-
+                         cleared BG tile visible — which looks like a space)
 ```
+
+The original `<<SELECT` header in DA332[`$05`] encodes its two leading `<` glyphs as `$EF $EF`, and asar source emits real spaces as `$FF`. Strings like `db "  SELECT"` therefore expand to `FF FF 1C 0E 15 0E 0C 1D` (two column-skips + S E L E C T), while the original `<<SELECT` is emitted as `db $EF, $EF, "SELECT"` (two literal `<` glyphs + SELECT).
+
+(This is the **menu-font** encoding, used for `DATA_0DA332` strings rendered via `CODE_01D1FC`. The **banner-font** encoding used by the per-fighter table at `$08:BB3D` is a different mapping — see §6 `spo_super_macho_man_fix` for the banner-font specifics.)
 
 ### Text string format (`DATA_0DA332`)
 
@@ -1402,7 +1494,7 @@ Each entry: `[length_byte][tile_byte × length]`. The renderer reads `data[0]` a
 
 | Index | Content | File offset of tile data |
 |---|---|---|
-| `$05` | `  SELECT` (2 leading `$EF` spaces + SELECT) | original |
+| `$05` | `<<SELECT` (2 leading `$EF` = `<` glyphs + SELECT) | original |
 | `$07` | MINOR | original |
 | `$08` | MAJOR | original |
 | `$09` | WORLD | original |
@@ -1416,7 +1508,7 @@ Each entry: `[length_byte][tile_byte × length]`. The renderer reads `data[0]` a
 | `$12` | ATTACK | original |
 | `$13` | SETTING | original |
 | `$0E` | VIEW | original |
-| `$38` | space (1 tile, `$EF`) | original — **do not touch pointer**; used as spacer throughout |
+| `$38` | single-tile `<` glyph (`$EF`) | original — **do not touch pointer**; reused as a `<` tile throughout |
 | `$49` | PLAYER | original |
 | `$2D` | PLAYER 2 (8 tiles) | `0x6FB03` — **repurposed** |
 | `$30` | MACHO MAN (9 tiles) | `0x6FD69` — **redirected by `spo_super_macho_man_fix.ips`** (originally pointed at `$0D:AC85` "MACHOMAN" 8 tiles, the typo is reversed by repointing to a new 9-tile entry in free space) |
@@ -1424,6 +1516,8 @@ Each entry: `[length_byte][tile_byte × length]`. The renderer reads `data[0]` a
 | `$A4` | CREDITS (7 tiles) | `0x6FB31` — **repurposed by `spo_end_credits.ips`** (originally pointed to garbage at `$B0A7`, never used as menu text) |
 
 **Warning:** `text_idx=$00` is the descriptor terminator sentinel. It cannot be used as a live token index — the renderer stops on it.
+
+**`DA332[$N]` with `$N > $53` is a fake-out, not a real entry.** DA332 has only 84 real entries (`$00–$53`). The renderer just reads `ptr_addr = 0x6A332 + $N * 2`; for `$N > $53` that lands inside DA3DA or beyond. Patches like `spo_end_credits.ips` exploit this by writing a tile-string pointer into the bytes at the implied offset (e.g. `$A4 → 0x6A47A`, inside DA3DA at byte-offset `$A0`), then using that out-of-range index in their own descriptor records. The byte being clobbered (a DA3DA entry, in the `$A4` case) must first be confirmed unreferenced by any live descriptor.
 
 ### Screen descriptor table (`DATA_0DA3DA`)
 
@@ -1454,7 +1548,9 @@ The opponent-select call site at `CODE_01BD0D` (file `0x0BD0D`) uses `TYA` to de
 | `$01:BFA2` | `0xBFA2` | Records View select screen init |
 | `$01:C9CA` | `0xC9CA` | Records View select A-button confirm dispatch |
 | `$01:CA71` | `0xCA71` | Cursor highlight init |
+| `$01:CA7C` | `0xCA7C` | Cursor highlight per-item Y stride literal (`LDA #$0100`) — shared across 11+ menus, patch in-place affects all of them |
 | `$01:CAAE` | `0xCAAE` | OAM cursor sprite positioner (calls `D082` scan loop) |
+| `$01:CAB2` | `0xCAB2` | OAM cursor per-item Y stride literal (`LDA #$20` → 32 px between cursor positions) — shared across 11+ menus; safer to redirect a specific call site to a custom stub than to patch in-place |
 | `$01:CB57` | `0xCB57` | Tilemap palette-cycle (transforms `$0064` → `$EF`/`$FF`) |
 | `$01:CC79` | `0xCC79` | Cursor highlight renderer (loops `$14+1` times) |
 | `$01:D082` | `0xD082` | Cursor's auto-snap-to-text scan (skips `$EF`/`$FF`) |

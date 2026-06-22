@@ -9,13 +9,13 @@
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/20bb0c6e-2d73-4ca2-ba18-6bb9584b7f50" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/69c1a244-62a4-4a1e-bbcf-620b26aabe52" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_003" src="https://github.com/user-attachments/assets/182e23f3-831f-46ce-90be-f352ccc8ce56" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_004" src="https://github.com/user-attachments/assets/c2388040-58ed-4175-8ff9-864da235d250" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_005" src="https://github.com/user-attachments/assets/01d79c97-2847-481e-bd9b-c9563f87dd55" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_006" src="https://github.com/user-attachments/assets/018cabe6-a0c2-4446-978e-6d45ed95af7b" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_004" src="https://github.com/user-attachments/assets/ec67fd2e-8311-401c-86ee-3f8d38481f21" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_005" src="https://github.com/user-attachments/assets/58993886-b8ee-448e-84e2-52097d48c83f" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_006" src="https://github.com/user-attachments/assets/760cbb00-aed1-4e54-b3f8-98602012b131" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_007" src="https://github.com/user-attachments/assets/7df047bd-4246-4d27-b960-3dd721e94d85" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_008" src="https://github.com/user-attachments/assets/25c4f5ad-a370-4fcb-8f48-7fdcc08e0615" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_009" src="https://github.com/user-attachments/assets/091938c6-af05-47b2-9419-089a988e32f8" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_010" src="https://github.com/user-attachments/assets/e15bbe5a-7198-4bd3-b4d2-f7daabd249a1" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_009" src="https://github.com/user-attachments/assets/5c3a4e74-4977-4f92-b1b8-6f138d3e5dfe" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_010" src="https://github.com/user-attachments/assets/f2dcc2ec-4be8-4865-a6ce-c2047b04a73a" />
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_011" src="https://github.com/user-attachments/assets/f183750a-60e4-46ab-9976-93d8e9635875" />
 
 ---
@@ -24,11 +24,15 @@
 
 Super Punch-Out!! (1994, SNES) is one of the best arcade-style boxing games ever made. You play as an up-and-coming boxer fighting your way through four circuits of increasingly absurd opponents, each with their own patterns, tells, and personality. The gameplay is fast, stylish, and deeply satisfying to master — a perfect arcade-like experience that holds up completely.
 
-Super Punch-Out!! contains a hidden 2-player mode that was never exposed through the normal menu. In this mode, holding a specific button combination causes Controller 2 to control the opponent — effectively turning a single-player game into a local versus match. This secret was first publicly discovered in 2022.
+This hack adds two major features the original game never had.
 
-This hack makes that experience a first-class feature. Instead of having to input secret button combinations, you select **VERSUS MODE** from the game's Mode Select menu just like any other mode. No combination, no guesswork.
+**VERSUS MODE.** Super Punch-Out!! contains a hidden 2-player mode that was never exposed through the normal menu. In this mode, holding a specific button combination causes Controller 2 to control the opponent — effectively turning a single-player game into a local versus match. This secret was first publicly discovered in 2022. This hack makes it a first-class feature: you select **VERSUS MODE** from the Mode Select menu just like any other mode. No combination, no guesswork.
 
-As it stands, this is the definitive version of the game. The Versus mode is inherently unbalanced — but it's the version I wish Nintendo had shipped back in the '90s. They eventually added a proper VS mode in the Wii sequel many years later. The "Special Edition" name is a nod to the game's ultimate hidden circuit!
+**IRON CIRCUIT.** A brand-new fifth circuit added to Championship Mode — a 16-fighter gauntlet from Gabby Jay to Nick Bruiser. Stamina and knockdowns carry across every fight with only a small recovery bonus between matches. No extra continues can be earned; 3 losses and the run is over! Per-slot W/L records are saved on completion.
+
+Beyond those two headliners, the hack also ships a collection of fixes and enhancements: alternate per-circuit glove colors with per-match overrides, typo corrections in fighter profiles and the tutorial demo, cosmetic title-screen tweaks, and a few quality-of-life additions (Japanese name-entry charset always available, a Credits entry in the Records View screen).
+
+As it stands, this is the definitive version of the game. The Versus mode is inherently unbalanced — but it's the version I wish Nintendo had shipped back in the '90s. They eventually added a proper VS mode in the Wii sequel many years later. The "Special Edition" name is a nod to the original game's ultimate hidden circuit!
 
 ---
 
@@ -36,6 +40,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 - **VERSUS MODE** added to the Mode Select menu — 2-player matches launch directly, no secret button combo required
   - **Either controller can pick on the opponent-select screen** — P2 can choose their own fighter without handing the controller back
+- **IRON CIRCUIT** — a fifth circuit in Championship Mode. A 16-opponent gauntlet through every fighter in the game, from Gabby Jay to Nick Bruiser. HP and Knockdowns carries over between fights with a small recovery bonus. Iron-themed presentation throughout, and per-slot best W/L record saved to SRAM.
 - **Alternate glove colors**
   — each circuit has its own default glove color (mirroring Punch-Out!! Wii's per-opponent glove tones)
   - per-match override: hold **L** (blue), **R** (red), **X** (yellow), or **Y** (green) before the fight starts — on the opponent-select screen in Time Attack / Versus, or on the pre-fight opponent screen in Championship — and confirm with A or Start to enter the fight in the chosen color. The override applies only to that match; the next fight reseeds from the opponent default.
@@ -53,17 +58,18 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ## Patch files
 
-### [`spo_special_edition_v1.6.ips`](patches/spo_special_edition_v1.6.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.7.ips`](patches/spo_special_edition_v1.7.ips) — Special Edition (recommended)
 
-The full experience: all the standalone patches below bundled into a single IPS. Apply directly to the original ROM.
+The full experience: every standalone patch below bundled into a single IPS, with the SNES header checksum stamped to match the combined ROM. Apply directly to the original ROM.
 
 ### Standalone patches
 
-These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.6.ips`.
+These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.7.ips`.
 
 | File | What it does | Details |
 |---|---|---|
 | [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
+| [`spo_iron_circuit.ips`](patches/standalone/spo_iron_circuit.ips) | Adds a fifth IRON CIRCUIT entry to Championship Mode → Circuit Select. 16-opponent gauntlet, HP carry-over, cumulative KD tracking, iron-themed pre-fight presentation and championship belt screen, per-slot W/L completion stats SRAM persistence. | [doc](doc/standalone/IRON_CIRCUIT.md) |
 | [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a per-circuit glove-color selector. Each circuit gets a different default color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y at fight start. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
 | [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
 | [`spo_super_macho_man_fix.ips`](patches/standalone/spo_super_macho_man_fix.ips) | Fixes the "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across all screens in the game. | [doc](doc/standalone/SUPER_MACHO_MAN_FIX.md) |
@@ -84,39 +90,57 @@ These are proof-of-concept patches with known bugs. Not included in the **Specia
 
 ---
 
-## What the Versus Hack adds
+## What's new in Special Edition
 
-### 1. VERSUS MODE on the Mode Select screen
+### Versus Mode
+
+#### 1. VERSUS MODE on the Mode Select screen
 
 The Mode Select screen gains a new **VERSUS MODE** entry between Championship and Time Attack. Selecting it launches a 2-player match directly, without needing any specific input combination.
 
 - Unlock logic is preserved — Time Attack and Records View require Championship progress; Versus is always available.
 - Backing out of opponent select returns to Mode Select cleanly.
 
-### 2. Player 2 controls the opponent
+#### 2. Player 2 controls the opponent
 
 In Versus matches, **Controller 2 controls the opponent**. This is the same mechanic as the 2022-discovered secret mode, now wired in permanently whenever you enter from Versus.
 
-### 3. Correct in-game screen labels
+#### 3. Correct in-game screen labels
 
 The opponent-select screen shows **"VERSUS MODE"** as its header and **"< PLAYER 2 SELECT >"** as the prompt when entering from Versus. Time Attack is completely unaffected — it still shows "TIME ATTACK MODE" and "< OPPONENT SELECT >".
 
-### 4. Player 2 picks their own fighter
+#### 4. Player 2 picks their own fighter
 
 On the VERSUS opponent-select screen, **Controller 2's D-pad, A, and Start mirror Controller 1's** — so Player 2 can pick their own character without handing the controller back.
 
-### 5. Special Circuit security checksum disabled
+#### 5. Special Circuit security checksum disabled
 
 The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators, or patched ROMs. This patch disables that checksum check so the Special Circuit is always accessible.
 
+**How to play:** From the title screen choose **NEW GAME** or **CONTINUE**. At Mode Select choose **VERSUS MODE**. Either controller can drive the opponent-select screen. Once the match starts, **Controller 1 controls the left boxer** and **Controller 2 controls the right boxer**.
+
 ---
 
-## How to play Versus mode
+### Iron Circuit
 
-1. From the title screen, choose **NEW GAME** or **CONTINUE**.
-2. At the **Mode Select** screen, choose **VERSUS MODE**.
-3. Select your circuit and opponent. Either controller can drive the opponent-select screen — Player 2 can navigate and confirm their own character.
-4. Once the match starts, **Controller 1 controls the left boxer** and **Controller 2 controls the right boxer**.
+#### 1. A fifth circuit
+
+**IRON CIRCUIT** appears below SPECIAL CIRCUIT on the Championship Mode → Circuit Select screen. It is always selectable regardless of save state.
+
+#### 2. 16-opponent gauntlet
+
+Every fighter in the game, in order — Gabby Jay through Nick Bruiser. No HP recovery between matches. Winning each fight routes you directly to the next opponent.
+
+#### 3. HP carry-over and cumulative knockdowns
+
+Player stamina and knockdowns carries from one fight to the next with a +16 HP recovery bonus between fights.
+Spending a continue resets both the HP stash and the KD counter, giving you a fresh 3-KD allowance and full HP for the next fight.
+
+#### 4. Per-slot W/L records
+
+After completing Iron Circuit for the first time on a slot, the Circuit Select screen shows `16 WIN N LOSS` next to the IRON CIRCUIT entry.
+
+**How to play:** From Championship Mode select **IRON CIRCUIT**. Fight all 16 opponents in order. Manage your stamina — it carries into every fight. Survive all 16 to see the ultimate belt screen and save your record.
 
 ---
 
@@ -132,7 +156,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining:** 170 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone), 4 bytes at `$01:FFE0–$FFE3`, and **2,422 bytes free in bank `$00`** (within the newly-mapped `UNK_00F5D0` zone, mostly untouched after applying the complete Special Edition patch — **2,596 bytes** total).
+- **Free space remaining (after Special Edition v1.7):** ~157 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone), ~95 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 1 byte at the end of bank `$01` `UNK_01F784`, and **~693 bytes free in bank `$00`** (the unused tail of `UNK_00F5D0` after iron's stubs land). **~950 bytes total** across all `%InsertGarbageData` zones.
 
 ---
 
