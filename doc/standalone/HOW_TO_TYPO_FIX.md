@@ -8,6 +8,8 @@ The correct spelling is **devastating**. This patch flips one byte to fix the sp
 
 **Note:** as far as we can tell, this typo has not been documented anywhere prior to this patch — not on TCRF, not in any known FAQ, not on the fan wiki. It's easy to miss because the HOW-TO-PLAY demo is a quick attract sequence most players skip. The string lives deep inside the tutorial animation data and the single misspelled letter (`e` instead of `a` at the third character of "devestating") is subtle enough that it went unnoticed for 30 years.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_011" src="https://github.com/user-attachments/assets/1720fc5a-e952-4bb4-a013-30f6a45b7063" />
+
 ## What it fixes
 
 - The word `devestating` → `devastating` in the UPPERCUT lesson string shown during the in-game tutorial demo.

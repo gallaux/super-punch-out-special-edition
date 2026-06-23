@@ -2,6 +2,11 @@
 
 Adds a fifth entry, **IRON CIRCUIT**, to the Championship Mode → Circuit Select screen, below SPECIAL CIRCUIT. IRON CIRCUIT is a 16-opponent gauntlet that runs every fighter in order, from Gabby Jay to Nick Bruiser, without HP recovery between fights. Player stamina and cumulative knockdown count carry across every match.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_006" src="https://github.com/user-attachments/assets/a005e3ff-08a1-4835-b0f0-2491063453b7" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA)_000" src="https://github.com/user-attachments/assets/e0ea490b-b416-480f-b68a-e84b5171c406" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA)_013" src="https://github.com/user-attachments/assets/9533a0ef-6950-4cf7-9657-e8d0bdcaa8b6" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA)_001" src="https://github.com/user-attachments/assets/a10bcd41-bb2d-4a66-aba9-129f950a5871" />
+
 ## What it does
 
 - **IRON CIRCUIT entry on Circuit Select** — always selectable, regardless of save state. The Circuit Select layout shifts up 4 rows so all five circuits fit; all decorations (brackets, subtitle, per-circuit W/L digits) move in lockstep.

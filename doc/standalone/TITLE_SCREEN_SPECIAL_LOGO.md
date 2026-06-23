@@ -2,6 +2,8 @@
 
 Cosmetic: writes the text **SPECIAL EDITION** into the title screen below the main game logo. Uses the standard menu font (palette 2, priority 1) and renders every time the title screen background is initialized.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_000" src="https://github.com/user-attachments/assets/e6adfd00-0eed-4e74-94f2-821417450772" />
+
 ## What it does
 
 Hooks the title-screen BG init routine `CODE_08C8AB` to call a stub that writes 14 tiles into the BG3 tilemap buffer at row 12, cols 6-22 (with a one-tile gap between SPECIAL and EDITION).

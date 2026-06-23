@@ -2,6 +2,9 @@
 
 Adds a fourth **CREDITS** entry to the Records View select screen. Selecting CREDITS launches the game's ending-cutscene credits roll. After the credits finish the game stays on the final screen and requires reset — that's the original cutscene's terminal behavior, not introduced by this patch.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_007" src="https://github.com/user-attachments/assets/e59979cc-804c-4110-aa88-6570d4b3b9b8" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_008" src="https://github.com/user-attachments/assets/557ab8f1-570d-424a-b87c-9dbf27e0e27c" />
+
 ## What it does
 
 The Records View select screen originally has three entries: BEST TIME, BEST SCORE, PERSONAL RECORDS — which list the three Championship circuits' records (Minor, Major, World). This patch:

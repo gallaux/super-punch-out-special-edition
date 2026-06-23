@@ -2,6 +2,9 @@
 
 The core hack of this repo. Adds VERSUS MODE to the Mode Select menu, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock.
 
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/11d6251a-c56d-46ea-a4e4-e26b297e24a0" />
+<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/195a7883-e233-4066-ad3d-49f829872569" />
+
 ## What it adds
 
 - **VERSUS MODE on Mode Select** — 2-player matches launch directly from the menu, no secret button combo required.

@@ -2,6 +2,8 @@
 
 Makes the Japanese character set L/R-cycling always active on the name-entry screen, with no hidden button combo required. The screen still opens on the Western set by default — players who don't want Japanese characters won't notice any change. L and R cycle through three sets (Japanese-1, Japanese-2, Western), exactly like the Japanese version of the game.
 
+<img width="256" height="224" alt="Super Punch-Out!! (USA)_003" src="https://github.com/user-attachments/assets/f8944a79-fba4-4e73-866d-d0a91814b3cf" />
+
 ## What it does
 
 The original US/EUR ROM has a hidden mode where L/R cycles between three character sets, activated by holding a specific button combo (X+A or Start+X+A) at the New Game cursor. The Japanese version has this mode on by default. This patch removes the gate so the cycling is always available.

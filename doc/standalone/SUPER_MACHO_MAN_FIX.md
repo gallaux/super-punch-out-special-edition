@@ -2,6 +2,11 @@
 
 Fixes the original ROM's "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across every screen in the game (TIME ATTACK and VERSUS opponent select, PERSONAL RECORDS, BEST TIME table, pre-fight profile...). The corrected spelling matches the US manual and every other appearance of the character — Punch-Out!! (1987, NES) and Punch-Out!! (2009, Wii).
 
+<img width="256" height="224" alt="PUNCHOUT_001" src="https://github.com/user-attachments/assets/e11a9f9d-ba77-4ba3-9660-79661e0d3b54" />
+<img width="256" height="224" alt="PUNCHOUT_000" src="https://github.com/user-attachments/assets/439a7e56-deb9-4f5f-947b-57fa64ebaf19" />
+<img width="256" height="224" alt="PUNCHOUT_002" src="https://github.com/user-attachments/assets/2fe81707-de9e-419f-99ce-98e5e2328236" />
+<img width="256" height="224" alt="PUNCHOUT_003" src="https://github.com/user-attachments/assets/abe3b1a9-7ae3-4b22-9548-f721c9794d12" />
+
 ## What's involved
 
 The fix touches four distinct screens with two text encodings, two pointer tables, and a per-fighter code patch. The pre-fight profile screen has a fixed layout slot that the corrected longer name doesn't fit into — Nintendo originally avoided this by collapsing "MACHO MAN" into "MACHOMAN". The patch resolves it by shifting Super Macho Man's portrait sprite 4 pixels right (only on his profile screen) to give the name the room it needs.
