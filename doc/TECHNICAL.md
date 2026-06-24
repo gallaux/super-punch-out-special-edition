@@ -1364,8 +1364,8 @@ The disassembly labels `$00:F5D0–$00:FF8F` as `UNK_00F5D0` — a 2,496-byte `%
 |---|---|---|
 | `0x75D0–0x75D4` | 5 B | EC6E trampoline (`spo_alt_glove_colors.ips` portrait sep stubs) |
 | `0x75D5–0x7619` | 69 B | Portrait stub-rts (`spo_alt_glove_colors.ips`) |
-| `0x761A–0x7CD9` | 1,728 B | **`spo_iron_circuit.ips`** — inlined descriptor renderer + IRON tile writer + 30+ flag-gated stubs (CONFIRM, POST_MATCH, DISPATCH, BG2 palette + iron rust palette, pre-fight title, rank renderer, portrait shift, KD/HP carry-over, HP-bar tween fix, championship belt screen palette/title/text-skip/digit override, SAVE_STUB, DRAW_STUB) |
-| `0x7CDA–0x7F8F` | ~693 B | **Free** |
+| `0x761A–0x7D1F` | 1,798 B | **`spo_iron_circuit.ips`** — inlined descriptor renderer + IRON tile writer + 30+ flag-gated stubs (CONFIRM, POST_MATCH, DISPATCH, BG2 palette + iron rust palette, pre-fight title, rank renderer, portrait shift, KD/HP carry-over, HP-bar tween fix, championship belt screen palette/title/text-skip/digit override, SAVE_STUB, DRAW_STUB, EXIT_FLAG_CLEAR ×2) |
+| `0x7D20–0x7F8F` | ~624 B | **Free** |
 
 > Other regions in bank `$00` that look free are NOT safe — `0x0D03`, `0x0D25`, `0x0D42` are runs of `$FF` inside `DATA_008CC1` / `DATA_008CE5` (kanji/tile data tables); `0x202A` is zero-padding inside `DATA_00A004` (PPU register init table); `0x636B` is zero-padding inside `DATA_00E365` (indexed jump table). All would corrupt game data if patched.
 
@@ -1443,8 +1443,8 @@ The disassembly at line 78995 explicitly labels `$0DFA69–$0DFFE3` as garbage f
 | Bank `$01` `UNK_01F784` (end at `$01:F800`) | **1 B** |
 | Bank `$01` `UNK_01FEC2` (`$01:FF12–$FF1F` and `$01:FF3F–$FF8F`) | **~95 B** |
 | Bank `$01` (`$01:FFE0–$FFE3`) | **4 B** |
-| Bank `$00` `UNK_00F5D0` (`$00:FCDA–$FF8F`) | **~693 B** |
-| **Total** | **~950 B** |
+| Bank `$00` `UNK_00F5D0` (`$00:FD20–$FF8F`) | **~624 B** |
+| **Total** | **~881 B** |
 
 `spo_super_macho_man_fix.ips` also consumes 19 bytes in bank `$08` at file `0x045926` (`$08:D926`) for the new fighter-banner entry. That region sits inside the disassembly's documented `%InsertGarbageData($08D926, ...)` zone — dead code from development, never referenced at runtime. `spo_iron_circuit.ips` adds **no stub bytes** to bank `$08` (only single-instruction in-place hooks); iron-staged data lives in low WRAM and is read via the bank-`$08` low-WRAM mirror.
 

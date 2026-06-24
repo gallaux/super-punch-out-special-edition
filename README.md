@@ -156,7 +156,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining (after Special Edition v1.7):** ~157 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone), ~95 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 1 byte at the end of bank `$01` `UNK_01F784`, and **~693 bytes free in bank `$00`** (the unused tail of `UNK_00F5D0` after iron's stubs land). **~950 bytes total** across all `%InsertGarbageData` zones.
+- **Free space remaining (after Special Edition v1.7):** ~157 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone), ~95 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 1 byte at the end of bank `$01` `UNK_01F784`, and **~624 bytes free in bank `$00`** (the unused tail of `UNK_00F5D0` after iron's stubs land). **~881 bytes total** across all `%InsertGarbageData` zones.
 
 ---
 

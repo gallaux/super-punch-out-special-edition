@@ -4,7 +4,7 @@ Adds a fifth entry, **IRON CIRCUIT**, to the Championship Mode → Circuit Selec
 
 <img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_006" src="https://github.com/user-attachments/assets/a005e3ff-08a1-4835-b0f0-2491063453b7" />
 <img width="256" height="224" alt="Super Punch-Out!! (USA)_000" src="https://github.com/user-attachments/assets/e0ea490b-b416-480f-b68a-e84b5171c406" />
-<img width="256" height="224" alt="Super Punch-Out!! (USA)_013" src="https://github.com/user-attachments/assets/9533a0ef-6950-4cf7-9657-e8d0bdcaa8b6" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA)_002" src="https://github.com/user-attachments/assets/cc0795a6-b659-45b8-bb08-0846af2cdfed" />
 <img width="256" height="224" alt="Super Punch-Out!! (USA)_001" src="https://github.com/user-attachments/assets/a10bcd41-bb2d-4a66-aba9-129f950a5871" />
 
 ## What it does
@@ -93,6 +93,7 @@ Bank `$00` unless otherwise noted. Each hook is gated on the iron flag — vanil
 | `$01:B93C`, `$01:BCDB` | Show-special hooks — force the SPECIAL CIRCUIT slot to render on Championship Mode and Time Attack circuit-select even when not unlocked (vanilla disable rendering preserved) |
 | `$01:B959`, `$01:BD29` | Iron W/L draw trampolines — call DRAW_STUB after the vanilla circuit-select renderer to overlay `16 WIN N LOSS` on iron-completed slots |
 | `$01:B7D6` | Slot-kill hook — fires inside the per-profile FILE KILL routine after the engine zeroes the slot record. Calls SLOT_KILL stub to also zero the iron W/L bytes at `$700FE8 + slot` and `$701FE8 + slot`. ALL CLEAR is unaffected (it already zeros all SRAM). |
+| `$00:B202` / `$00:B216` | Exit-iron-flag-clear hooks — fire on the post-fight game-over (`B202`: JMP $8837) and retire (`B216`: JMP $8895) paths. Each calls EXIT_FLAG_CLEAR stub to clear `$7E:1FE1` and zero the BG2 main palette WRAM at `$7E:0440-$045F`, preventing the rust palette from bleeding into RECORDS VIEW > BEST TIME / BEST SCORE and the next vanilla circuit's pre-fight palette. Iron-flag-gated — no-op on non-iron exits. |
 
 ### Stub layout
 
@@ -122,6 +123,8 @@ All stubs live in free-space regions documented in [TECHNICAL.md § 7](../TECHNI
 | `$00:FAA5` | bank `$00` | W/L digit override — writes "1" + "6" instead of "4" |
 | `$00:FAF5` | bank `$00` | SAVE_STUB — writes iron W/L to SRAM `$700FE8 + slot` (primary + backup) at iron-complete |
 | `$00:FB2A` | bank `$00` | DRAW_STUB — renders `16 WIN N LOSS` on Circuit Select for iron-completed slots |
+| `$00:FCDA` | bank `$00` | EXIT_FLAG_CLEAR (B202 / game-over) — clears `$7E:1FE1` + zeros BG2 palette WRAM, replicates JMP $8837 |
+| `$00:FCFD` | bank `$00` | EXIT_FLAG_CLEAR (B216 / retire) — same cleanup, replicates JMP $8895 |
 | `$01:F784` | bank `$01` | REST_NO_GROW — suppresses `$0606` INC + visible REST tile bumps |
 | `$01:F7A5` | bank `$01` | DRAIN_SKIP — shared by champion-bonus drain and aggregate-screen suppression |
 | `$01:F7B2` | bank `$01` | TALLY_NAME — score-tally circuit-name override |
@@ -156,7 +159,7 @@ Only runs with 2 or fewer losses are saved. A run that ends via a 3rd cumulative
 
 ## Free space consumed
 
-- **Bank `$00` `UNK_00F5D0`** (`$00:F61A–$00:FCD9`): ~1,728 bytes for all iron stubs, the inlined descriptor renderer, and the 32-byte rust BG2 palette. The first 74 bytes of `UNK_00F5D0` (`$00:F5D0–$00:F619`) belong to `spo_alt_glove_colors`.
+- **Bank `$00` `UNK_00F5D0`** (`$00:F61A–$00:FD1F`): ~1,798 bytes for all iron stubs, the inlined descriptor renderer, and the 32-byte rust BG2 palette. The first 74 bytes of `UNK_00F5D0` (`$00:F5D0–$00:F619`) belong to `spo_alt_glove_colors`.
 - **Bank `$01` `UNK_01F784`** (`$01:F784–$01:F7FE`): ~123 bytes for REST_NO_GROW, DRAIN_SKIP, TALLY_NAME, RECOVERY_OVERRIDE, and CONTINUE_RESET. The hard ceiling at `$01:F800` is real game code (`JMP $F815`) — none of these stubs cross it.
 - **Bank `$01` `UNK_01FEC2`** (`$01:FED4–$01:FF3E`): ~107 bytes for PHASE_BYPASS, BONUS_ZERO, FAST_CASCADE, the two W/L draw trampolines, and the SLOT_KILL stub. The first 18 bytes of this region (`$01:FEC2–$01:FED3`) belong to `spo_end_credits`'s no-record artifact fix.
 - **Bank `$0D`**: 13 bytes for the IRON tally descriptor at `$0D:FA69`.
@@ -238,6 +241,12 @@ org $00B250
 ;------------------------------------------------------------------------------
 org $00B270
     JML $00F747           ; replaces JMP indirect; eats 1 B of UNK_00B273
+
+;------------------------------------------------------------------------------
+; Exit-iron-flag-clear hooks (game-over + retire paths)
+;------------------------------------------------------------------------------
+org $00B202 : JMP $00FCDA   ; was: JMP $8837 (game-over → title)
+org $00B216 : JMP $00FCFD   ; was: JMP $8895 (retire / quit)
 
 ;------------------------------------------------------------------------------
 ; BG2 palette hook (file 0x001C18)
@@ -435,6 +444,18 @@ org $00FB2A
     ; (0L / 1L / 2L) each writing 22 tile/attr pairs to BG3 row 22 ($5DA8..).
     ; Tile pattern: "1 6 W I N {N} L O S S [E S]" (the trailing "ES" only
     ; renders for N != 0 to read as "LOSSES"). 432 bytes.
+
+org $00FCDA
+    ; EXIT_FLAG_CLEAR (B202 / game-over): hooked from `JMP $8837` at $00:B202.
+    ; PHP/PLP wraps the cleanup; gates on $7E:1FE1 (no-op when clear). On iron
+    ; flag set: clears $7E:1FE1 and zeros BG2 palette WRAM ($7E:0440-$045F).
+    ; Tail: JMP $8837 (replicate eaten instruction). 35 bytes.
+
+org $00FCFD
+    ; EXIT_FLAG_CLEAR (B216 / retire): same gated cleanup as above; tail is
+    ; JMP $8895 (replicate eaten instruction at $00:B216). 35 bytes. The two
+    ; convergence points cover all mid-iron exits — game-over (no continues
+    ; left) routes through B202; retire/quit routes through B216.
 
 ;------------------------------------------------------------------------------
 ; Stub bodies (bank $01, UNK_01F784)
