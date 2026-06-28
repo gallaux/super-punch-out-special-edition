@@ -2,8 +2,8 @@
 
 The core hack of this repo. Adds VERSUS MODE to the Mode Select menu, lets either controller pick on the opponent-select screen, and disables the Special Circuit security checksum lock.
 
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_001" src="https://github.com/user-attachments/assets/11d6251a-c56d-46ea-a4e4-e26b297e24a0" />
-<img width="256" height="224" alt="Super Punch-Out!! Special Edition (USA)_002" src="https://github.com/user-attachments/assets/195a7883-e233-4066-ad3d-49f829872569" />
+<img width="256" height="224" alt="Super Punch-Out!! Versus Mode 001" src="https://github.com/user-attachments/assets/11d6251a-c56d-46ea-a4e4-e26b297e24a0" />
+<img width="256" height="224" alt="Super Punch-Out!! Versus Mode 002" src="https://github.com/user-attachments/assets/195a7883-e233-4066-ad3d-49f829872569" />
 
 ## What it adds
 
@@ -331,8 +331,8 @@ The `; (full body in TECHNICAL.md record [N])` placeholders cover three large st
 
 ## Compatibility
 
-- **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
-- **Bundled into**: `spo_special_edition_v1.7.ips`
+- **Apply on top of**: original `Super Punch-Out!! (USA).sfc` ROM (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
+- **Bundled into**: `spo_special_edition_v1.8.ips`
 - **Conflicts with**: `spo_disable_security_checksum.ips` writes the same value to file `0x003C23` (the Special Circuit lock-bypass byte) — applying both is a harmless no-op double-write.
 - **Cheat-code compatibility**: unaffected
 

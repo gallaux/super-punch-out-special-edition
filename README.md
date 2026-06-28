@@ -43,7 +43,7 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 - **IRON CIRCUIT** — a fifth circuit in Championship Mode. A 16-opponent gauntlet through every fighter in the game, from Gabby Jay to Nick Bruiser. HP and Knockdowns carries over between fights with a small recovery bonus. Iron-themed presentation throughout, and per-slot best W/L record saved to SRAM.
 - **Alternate glove colors**
   — each circuit has its own default glove color (mirroring Punch-Out!! Wii's per-opponent glove tones)
-  - per-match override: hold **L** (blue), **R** (red), **X** (yellow), or **Y** (green) before the fight starts — on the opponent-select screen in Time Attack / Versus, or on the pre-fight opponent screen in Championship — and confirm with A or Start to enter the fight in the chosen color. The override applies only to that match; the next fight reseeds from the opponent default.
+  - per-match override: hold **L** (blue), **R** (red), **X** (yellow), **Y** (green), or **SELECT** (white) before the fight starts — on the opponent-select screen in Time Attack / Versus, or on the pre-fight opponent screen in Championship — and confirm with A or Start to enter the fight in the chosen color. The override applies only to that match; the next fight reseeds from the opponent default.
 - **Typo fixes:**
   - Mr. Sandman's profile stats (originally a verbatim copy of Super Macho Man's; restored to age 30, weight 270 lbs, record 28-4 — the correct values from the manual and Japanese version)
   - Mad Clown's weight (390 lbs → 370 lbs, matching the manual)
@@ -58,19 +58,19 @@ As it stands, this is the definitive version of the game. The Versus mode is inh
 
 ## Patch files
 
-### [`spo_special_edition_v1.7.ips`](patches/spo_special_edition_v1.7.ips) — Special Edition (recommended)
+### [`spo_special_edition_v1.8.ips`](patches/spo_special_edition_v1.8.ips) — Special Edition (recommended)
 
 The full experience: every standalone patch below bundled into a single IPS, with the SNES header checksum stamped to match the combined ROM. Apply directly to the original ROM.
 
 ### Standalone patches
 
-These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a fresh `spo.sfc` and the result is identical to the bundled `spo_special_edition_v1.7.ips`.
+These are independent fixes that can be applied alone or mixed and matched, on top of the original ROM. **All standalone patches in this repo are byte-level compatible** — they can be applied in any order on top of a original `Super Punch-Out!! (USA).sfc` ROM and the result is identical to the bundled `spo_special_edition_v1.8.ips`.
 
 | File | What it does | Details |
 |---|---|---|
 | [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
 | [`spo_iron_circuit.ips`](patches/standalone/spo_iron_circuit.ips) | Adds a fifth IRON CIRCUIT entry to Championship Mode → Circuit Select. 16-opponent gauntlet, HP carry-over, cumulative KD tracking, iron-themed pre-fight presentation and championship belt screen, per-slot W/L completion stats SRAM persistence. | [doc](doc/standalone/IRON_CIRCUIT.md) |
-| [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a per-circuit glove-color selector. Each circuit gets a different default color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y at fight start. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
+| [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a per-circuit glove-color selector. Each circuit gets a different default color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y/SELECT at fight start. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
 | [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
 | [`spo_super_macho_man_fix.ips`](patches/standalone/spo_super_macho_man_fix.ips) | Fixes the "SUPER MACHOMAN" → "SUPER MACHO MAN" typo across all screens in the game. | [doc](doc/standalone/SUPER_MACHO_MAN_FIX.md) |
 | [`spo_how_to_typo_fix.ips`](patches/standalone/spo_how_to_typo_fix.ips) | Fixes a single-letter typo in the in-game tutorial demo: "devestating" → "devastating". | [doc](doc/standalone/HOW_TO_TYPO_FIX.md) |
@@ -156,7 +156,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining (after Special Edition v1.7):** ~157 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone), ~95 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 1 byte at the end of bank `$01` `UNK_01F784`, and **~624 bytes free in bank `$00`** (the unused tail of `UNK_00F5D0` after iron's stubs land). **~881 bytes total** across all `%InsertGarbageData` zones.
+- **Free space remaining (after Special Edition v1.8):** ~281 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone, fragmented; max contiguous run ~104 B), ~73 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 3 bytes at the end of bank `$01` `UNK_01F784`, and **~423 bytes free in bank `$00`** (contiguous tail of `UNK_00F5D0` at `$00:FDE9–$FF8F`). **~784 bytes total** across all `%InsertGarbageData` zones.
 
 ---
 

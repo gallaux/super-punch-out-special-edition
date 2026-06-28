@@ -2,6 +2,8 @@
 
 Adds a **SOUND MODE** entry to the title-screen menu and shifts the entire menu UI up by 4 rows. The menu shows NEW GAME / CONTINUE / DATA / CLEAR / SOUND MODE across rows 9/13/17/17/21. This patch is a proof-of-concept only — see **Known bugs** below.
 
+<img width="256" height="224" alt="Super Punch-Out!! Sound Mode Incomplete 001" src="https://github.com/user-attachments/assets/1ec9d3e1-4bdd-4b89-8156-8ea9b5abf190" />
+
 ## What it does
 
 - Shifts the title-screen menu UI up by 4 rows to make room for a 5th entry.
@@ -154,7 +156,7 @@ org $00F61A
 
 ## Compatibility
 
-- **Apply on top of**: bare `spo.sfc` (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
+- **Apply on top of**: original `Super Punch-Out!! (USA).sfc` ROM (MD5 `97fe7d7d2a1017f8480e60a365a373f0`)
 - **Bundled into**: nothing — incomplete patch
 - **Conflicts with**: nothing in this repo
 - **Cheat-code compatibility**: unaffected
