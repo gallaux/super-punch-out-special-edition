@@ -4,7 +4,7 @@
 > [zeldix.net/t1951-super-punch-out](https://www.zeldix.net/t1951-super-punch-out).
 > This document exists for update, preservation and compatibility purposes —
 > to record what the patch does, how it interacts with Special Edition, and
-> what would be needed to make full use of it.
+> what is needed to make full use of it.
 >
 > `patches/standalone/spo_msu1_v6.ips` is a fixed version of the original v5
 > with three corrections applied:
