@@ -2,9 +2,9 @@
 
 Adds a runtime glove-color selector to the player's gloves. By default each circuit gets a per-opponent color (mirroring how Punch-Out!! Wii dressed Little Mac in different glove tones across circuits), and the player can force the glove color for the current match by holding a button before the fight starts: on the opponent-select screen in Time Attack / Versus mode, or on the pre-fight opponent screen in Championship mode. Hold the button and press A or Start to enter the fight with the chosen color.
 
-<img width="256" height="224" alt="Super Punch-Out!! Alternative Glove Colors 001" src="https://github.com/user-attachments/assets/ab78a0d0-9501-48e9-920d-6cf59af7b7f4" />
-<img width="256" height="224" alt="Super Punch-Out!! Alternative Glove Colors 002" src="https://github.com/user-attachments/assets/6252da4c-fca4-42a6-baee-6fb14fe95ca7" />
-<img width="256" height="224" alt="Super Punch-Out!! Alternative Glove Colors 003" src="https://github.com/user-attachments/assets/aadad097-cf9e-4467-b853-b9e31d3d1a54" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Alt Glove Colors_001" src="https://github.com/user-attachments/assets/ab78a0d0-9501-48e9-920d-6cf59af7b7f4" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Alt Glove Colors_002" src="https://github.com/user-attachments/assets/6252da4c-fca4-42a6-baee-6fb14fe95ca7" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Alt Glove Colors_003" src="https://github.com/user-attachments/assets/aadad097-cf9e-4467-b853-b9e31d3d1a54" />
 
 ## What it does
 
@@ -13,6 +13,7 @@ Adds a runtime glove-color selector to the player's gloves. By default each circ
   - **Major circuit** (opponents 4-7) → blue
   - **World circuit** (opponents 8-11) → red
   - **Special circuit** (opponents 12-15) → yellow
+  - **Iron circuit** (opponents 0-15) → white
 - **L** → blue
 - **R** → red
 - **X** → yellow

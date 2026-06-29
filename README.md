@@ -68,7 +68,7 @@ These are independent fixes that can be applied alone or mixed and matched, on t
 
 | File | What it does | Details |
 |---|---|---|
-| [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu, lets either controller pick on the opponent-select screen, and fixes the Special Circuit security checksum lock. | [doc](doc/standalone/VERSUS_HACK.md) |
+| [`spo_versus_hack.ips`](patches/standalone/spo_versus_hack.ips) **(core hack)** | The core hack of this repo. Adds Versus Mode to the menu and lets either controller pick on the opponent-select screen. | [doc](doc/standalone/VERSUS_HACK.md) |
 | [`spo_iron_circuit.ips`](patches/standalone/spo_iron_circuit.ips) | Adds a fifth IRON CIRCUIT entry to Championship Mode → Circuit Select. 16-opponent gauntlet, HP carry-over, cumulative KD tracking, iron-themed pre-fight presentation and championship belt screen, per-slot W/L completion stats SRAM persistence. | [doc](doc/standalone/IRON_CIRCUIT.md) |
 | [`spo_alt_glove_colors.ips`](patches/standalone/spo_alt_glove_colors.ips) | Adds a per-circuit glove-color selector. Each circuit gets a different default color (mirroring how Punch-Out!! Wii dressed Little Mac across opponents), and the player can override per-match by holding L/R/X/Y/SELECT at fight start. | [doc](doc/standalone/ALT_GLOVE_COLORS.md) |
 | [`spo_profile_stats_fix.ips`](patches/standalone/spo_profile_stats_fix.ips) | Fixes two profile-screen stat errors present in the US/EUR ROM: Mr. Sandman's stats are a verbatim copy of Super Macho Man's (restored to age 30, weight 270 lbs, record 28-4); Mad Clown's weight reads 390 lbs instead of 370 lbs. Both correct values match the US manual and the later-released Japanese version of the game. | [doc](doc/standalone/PROFILE_STATS_FIX.md) |
@@ -113,10 +113,6 @@ The opponent-select screen shows **"VERSUS MODE"** as its header and **"< PLAYER
 
 On the VERSUS opponent-select screen, **Controller 2's D-pad, A, and Start mirror Controller 1's** — so Player 2 can pick their own character without handing the controller back.
 
-#### 5. Special Circuit security checksum disabled
-
-The World Circuit completion checksum prevents the Special Circuit from unlocking when using save states, emulators, or patched ROMs. This patch disables that checksum check so the Special Circuit is always accessible.
-
 **How to play:** From the title screen choose **NEW GAME** or **CONTINUE**. At Mode Select choose **VERSUS MODE**. Either controller can drive the opponent-select screen. Once the match starts, **Controller 1 controls the left boxer** and **Controller 2 controls the right boxer**.
 
 ---
@@ -156,7 +152,7 @@ For the full reverse-engineering notes — every patch address, the SNES memory 
 Key facts for anyone continuing this work:
 
 - **ROM mapping:** LoROM. File offset = bank × 0x8000 + (SNES_addr − 0x8000).
-- **Free space remaining (after Special Edition v1.8):** ~281 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone, fragmented; max contiguous run ~104 B), ~73 bytes free in bank `$01` `UNK_01FEC2`, 4 bytes at `$01:FFE0–$FFE3`, 3 bytes at the end of bank `$01` `UNK_01F784`, and **~423 bytes free in bank `$00`** (contiguous tail of `UNK_00F5D0` at `$00:FDE9–$FF8F`). **~784 bytes total** across all `%InsertGarbageData` zones.
+- **Free space remaining (after Special Edition v1.8):** ~213 bytes free in bank `$0D` (within the `$0DFA69–$0DFFE3` `%InsertGarbageData` zone, fragmented; max contiguous run 68 B at `$0D:FD25–$0D:FD68`), ~92 bytes free across bank `$01` (`UNK_01D722` tail + small zone tails), 1 byte at the end of bank `$01` `UNK_01F784`, and **~376 bytes free in bank `$00`** (contiguous tail of `UNK_00F5D0` at `$00:FE18–$FF8F`). **~681 bytes total** across all `%InsertGarbageData` zones.
 
 ---
 

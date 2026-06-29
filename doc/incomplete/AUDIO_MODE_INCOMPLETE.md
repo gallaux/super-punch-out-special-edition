@@ -2,7 +2,7 @@
 
 Adds a **SOUND MODE** entry to the title-screen menu and shifts the entire menu UI up by 4 rows. The menu shows NEW GAME / CONTINUE / DATA / CLEAR / SOUND MODE across rows 9/13/17/17/21. This patch is a proof-of-concept only — see **Known bugs** below.
 
-<img width="256" height="224" alt="Super Punch-Out!! Sound Mode Incomplete 001" src="https://github.com/user-attachments/assets/1ec9d3e1-4bdd-4b89-8156-8ea9b5abf190" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Sound Mode Incomplete_001" src="https://github.com/user-attachments/assets/1ec9d3e1-4bdd-4b89-8156-8ea9b5abf190" />
 
 ## What it does
 

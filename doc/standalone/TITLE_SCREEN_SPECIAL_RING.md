@@ -2,7 +2,7 @@
 
 Cosmetic: replaces the title-screen ring logo and background color palette with the Special Circuit variants for some extra flair. The SUPER PUNCH-OUT!! logo itself is unchanged; only the ring artwork and the colors behind/around it are swapped. All in-game circuit screens are unaffected — only the title screen is altered.
 
-<img width="256" height="224" alt="Super Punch-Out!! Title Screen Special Ring 001" src="https://github.com/user-attachments/assets/7e26111e-4097-4381-aee4-4e556a50880b" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Title Screen Special Ring_001" src="https://github.com/user-attachments/assets/7e26111e-4097-4381-aee4-4e556a50880b" />
 
 ## Patch records
 

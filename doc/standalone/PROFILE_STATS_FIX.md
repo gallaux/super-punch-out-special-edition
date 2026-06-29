@@ -2,8 +2,8 @@
 
 Corrects two profile-screen stat errors present in the US/EUR ROM — both classic copy-paste bugs in the original game's data. Both correct values match the US manual and the later-released Japanese version.
 
-<img width="256" height="224" alt="Super Punch-Out!! Profile Stats Fix 001" src="https://github.com/user-attachments/assets/6918a60c-9e16-4112-97ab-f9060a190419" />
-<img width="256" height="224" alt="Super Punch-Out!! Profile Stats Fix 002" src="https://github.com/user-attachments/assets/b178e2a6-5b4e-4925-bb22-dcabcc993289" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Profile Stats Fix_001" src="https://github.com/user-attachments/assets/6918a60c-9e16-4112-97ab-f9060a190419" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Profile Stats Fix_002" src="https://github.com/user-attachments/assets/b178e2a6-5b4e-4925-bb22-dcabcc993289" />
 
 ## What it fixes
 

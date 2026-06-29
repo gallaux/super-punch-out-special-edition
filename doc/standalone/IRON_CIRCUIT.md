@@ -2,11 +2,11 @@
 
 Adds a fifth entry, **IRON CIRCUIT**, to the Championship Mode → Circuit Select screen, below SPECIAL CIRCUIT. IRON CIRCUIT is a 16-opponent gauntlet that runs every fighter in order, from Gabby Jay to Nick Bruiser, without HP recovery between fights. Player stamina and cumulative knockdown count carry across every match.
 
-<img width="256" height="224" alt="Super Punch-Out!! Iron Circuit 001" src="https://github.com/user-attachments/assets/a005e3ff-08a1-4835-b0f0-2491063453b7" />
-<img width="256" height="224" alt="Super Punch-Out!! Iron Circuit 002" src="https://github.com/user-attachments/assets/e0ea490b-b416-480f-b68a-e84b5171c406" />
-<img width="256" height="224" alt="Super Punch-Out!! Iron Circuit 003" src="https://github.com/user-attachments/assets/7c76f6fa-4ab5-441a-8996-d27526d97959" />
-<img width="256" height="224" alt="Super Punch-Out!! Iron Circuit 004" src="https://github.com/user-attachments/assets/99b270df-257b-402d-b6b7-6b95b4aa1dd4" />
-<img width="256" height="224" alt="Super Punch-Out!! Iron Circuit 005" src="https://github.com/user-attachments/assets/a10bcd41-bb2d-4a66-aba9-129f950a5871" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Iron Circuit_001" src="https://github.com/user-attachments/assets/a005e3ff-08a1-4835-b0f0-2491063453b7" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Iron Circuit_002" src="https://github.com/user-attachments/assets/e0ea490b-b416-480f-b68a-e84b5171c406" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Iron Circuit_003" src="https://github.com/user-attachments/assets/7c76f6fa-4ab5-441a-8996-d27526d97959" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Iron Circuit_004" src="https://github.com/user-attachments/assets/99b270df-257b-402d-b6b7-6b95b4aa1dd4" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Iron Circuit_005" src="https://github.com/user-attachments/assets/a10bcd41-bb2d-4a66-aba9-129f950a5871" />
 
 ## What it does
 

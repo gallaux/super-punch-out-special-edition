@@ -2,7 +2,7 @@
 
 Cosmetic: writes the text **SPECIAL EDITION** into the title screen below the main game logo. Uses the standard menu font (palette 2, priority 1) and renders every time the title screen background is initialized.
 
-<img width="256" height="224" alt="Super Punch-Out!! Title Screen Special Logo 001" src="https://github.com/user-attachments/assets/e6adfd00-0eed-4e74-94f2-821417450772" />
+<img width="256" height="224" alt="Super Punch-Out!! (USA) Title Screen Special Logo_001" src="https://github.com/user-attachments/assets/e6adfd00-0eed-4e74-94f2-821417450772" />
 
 ## What it does
 
